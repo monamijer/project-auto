@@ -1,0 +1,101 @@
+/* Table Styles */
+/* Professional, consistent, and easily extendable tables */
+
+/* Table Wrapper for responsive scrolling */
+.table-wrapper {
+  overflow-x: auto;
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Main Table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+/* Table Header */
+.data-table thead tr {
+  background-color: var(--light-gray);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.data-table th {
+  padding: var(--spacing-md);
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-dark);
+  white-space: nowrap;
+}
+
+/* Table Body */
+.data-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--primary-light);
+}
+
+.data-table td {
+  padding: var(--spacing-md);
+  vertical-align: middle;
+}
+
+/* Table cell with badge */
+.data-table td .badge {
+  white-space: nowrap;
+}
+
+/* Action buttons in table */
+.table-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* Table footer */
+.table-footer {
+  padding: var(--spacing-md);
+  background-color: var(--light-gray);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+/* Empty state */
+.table-empty {
+  text-align: center;
+  padding: var(--spacing-xxl) !important;
+  color: var(--text-muted);
+}
+
+/* Responsive table utilities */
+@media (max-width: 768px) {
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-sm);
+  }
+  
+  .table-actions {
+    flex-direction: column;
+  }
+  
+  .table-footer {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* For tables with many columns - maintains readability */
+@media (max-width: 1024px) {
+  .data-table {
+    min-width: 800px;
+  }
+}
