@@ -1,0 +1,12 @@
+{
+  "name": "project_auto",
+  "version": "1.0.0",
+  "description": "",
+  "license": "MIT",
+  "author": "jerome",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "test": "jasmine"
+  }
+}
