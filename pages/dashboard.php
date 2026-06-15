@@ -11,7 +11,7 @@
 </head>
 <body>
     <div class="app-wrapper">
-        
+        <?php include 'sidebar.php'; ?>
         <main class="main-content">
             <div class="content-container">
                 <div class="page-header">
