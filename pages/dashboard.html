@@ -11,85 +11,63 @@
 </head>
 <body>
     <div class="app-wrapper">
-        <!-- Sidebar Component - Reusable across all pages -->
-<aside class="sidebar">
-    <div class="sidebar-header">
-        <h2>Auto-École Pro</h2>
-        <p>Système de Gestion</p>
-    </div>
-    
-    <nav class="sidebar-nav">
-        <ul>
-            <li><a href="dashboard.html"><span class="menu-icon">📊</span> Tableau de bord</a></li>
-            <li><a href="eleves.html"><span class="menu-icon">👨‍🎓</span> Élèves</a></li>
-            <li><a href="moniteurs.html"><span class="menu-icon">👨‍🏫</span> Moniteurs</a></li>
-            <li><a href="vehicules.html"><span class="menu-icon">🚗</span> Véhicules</a></li>
-            <li><a href="lecons.html"><span class="menu-icon">📚</span> Leçons</a></li>
-            <li><a href="examens.html"><span class="menu-icon">✍️</span> Examens</a></li>
-            <li><a href="paiements.html"><span class="menu-icon">💰</span> Paiements</a></li>
-            <li><a href="parametres.html"><span class="menu-icon">⚙️</span> Paramètres</a></li>
-        </ul>
-    </nav>
-</aside>
-        <div id="sidebar-container"></div>
         
         <main class="main-content">
             <div class="content-container">
                 <div class="page-header">
                     <h1>Tableau de Bord</h1>
-                    <p class="page-description">Bienvenue dans votre espace de gestion Auto-École</p>
+                    <p class="page-description">Bienvenue, <?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
                 </div>
                 
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">👥</div>
                         <div class="stat-content">
-                            <div class="stat-number">156</div>
-                            <div class="stat-label">Total Élèves</div>
+                            <div class="stat-number"><?php echo $counts['students']; ?></div>
+                            <div class="stat-label">Total Élèves Actifs</div>
                         </div>
                     </div>
                     
                     <div class="stat-card">
                         <div class="stat-icon">👨‍🏫</div>
                         <div class="stat-content">
-                            <div class="stat-number">12</div>
-                            <div class="stat-label">Total Moniteurs</div>
+                            <div class="stat-number"><?php echo $counts['instructors']; ?></div>
+                            <div class="stat-label">Total Moniteurs Actifs</div>
                         </div>
                     </div>
                     
                     <div class="stat-card">
                         <div class="stat-icon">🚗</div>
                         <div class="stat-content">
-                            <div class="stat-number">8</div>
-                            <div class="stat-label">Total Véhicules</div>
+                            <div class="stat-number"><?php echo $counts['vehicles']; ?></div>
+                            <div class="stat-label">Véhicules Disponibles</div>
                         </div>
                     </div>
                     
                     <div class="stat-card">
                         <div class="stat-icon">📝</div>
                         <div class="stat-content">
-                            <div class="stat-number">24</div>
+                            <div class="stat-number"><?php echo $counts['exams']; ?></div>
                             <div class="stat-label">Examens Ce Mois</div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Recent Activity Section (Simple) -->
                 <div class="recent-section">
-                    <h3>Activités Récentes</h3>
+                    <h3>Dernières Inscriptions</h3>
                     <div class="activity-list">
+                        <?php foreach ($recentStudents as $student): ?>
                         <div class="activity-item">
-                            <span class="activity-date">15/01/2024</span>
-                            <span class="activity-text">5 nouveaux élèves inscrits cette semaine</span>
+                            <span class="activity-date"><?php echo formatDate($student['date_inscription']); ?></span>
+                            <span class="activity-text"><?php echo htmlspecialchars($student['prenom'] . ' ' . $student['nom']); ?> s'est inscrit(e)</span>
                         </div>
+                        <?php endforeach; ?>
+                        
+                        <?php if (empty($recentStudents)): ?>
                         <div class="activity-item">
-                            <span class="activity-date">14/01/2024</span>
-                            <span class="activity-text">Examens code programmés pour 20 élèves</span>
+                            <span class="activity-text">Aucune inscription récente</span>
                         </div>
-                        <div class="activity-item">
-                            <span class="activity-date">13/01/2024</span>
-                            <span class="activity-text">Maintenance prévue pour 2 véhicules</span>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -97,21 +75,5 @@
     </div>
     
     <script src="../assets/js/hamburger.js"></script>
-    <script>
-        // Simple sidebar include
-        fetch('../pages/sidebar-component.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('sidebar-container').innerHTML = data;
-                // Set active menu item
-                const currentPage = 'dashboard';
-                const links = document.querySelectorAll('.sidebar-nav a');
-                links.forEach(link => {
-                    if(link.getAttribute('href') === 'dashboard.html') {
-                        link.closest('li').classList.add('active');
-                    }
-                });
-            });
-    </script>
 </body>
 </html>

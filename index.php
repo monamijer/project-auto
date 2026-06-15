@@ -30,6 +30,7 @@
                 
                 <div class="login-footer">
                     <a href="pages/inscription.html" class="candidature-link">Déposer une candidature d'inscription</a>
+                    <?php echo data("d-m-Y")?>
                 </div>
             </form>
         </div>
