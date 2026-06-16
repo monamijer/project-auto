@@ -1,12 +1,19 @@
 {
   "name": "project_auto",
   "version": "1.0.0",
-  "description": "",
+  "description": "Auto École Pro – Management system",
   "license": "MIT",
   "author": "jerome",
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
     "test": "jasmine"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.10.0",
+    "jquery": "^3.6.0",
+    "datatables.net": "^1.13.4",
+    "datatables.net-bs5": "^1.13.4"
   }
 }
