@@ -1,168 +1,121 @@
-<!-- exams.php -->
 <?php
 /**
- * Exams Management Page
- * Track student exams and results
+ * pages/exams.php — Examens
+ * SELECT → v_examens_eligibles, v_stats_formations (Views SQL)
  */
 session_start();
-require_once 'config/database.php';
+require_once __DIR__ . '/../config/database.php';
+require_once BASE_PATH . '/includes/auth.php';
+requireLogin();
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit();
-}
-
-// Note: Since there's no exams table in the database yet,
-// we'll create a view based on lessons with status 'effectuée'
-// and track exam eligibility based on completed lessons
-
-// Get exam-eligible students (students who have completed lessons)
-$eligible = $conn->query("
-    SELECT u.id, u.nom, u.prenom, u.email, u.telephone,
-           f.nom as formation_name,
-           COUNT(l.id) as completed_lessons,
-           SUM(CASE WHEN l.statut = 'effectuée' THEN 1 ELSE 0 END) as total_completed
-    FROM utilisateurs u
-    JOIN formations f ON u.formation_id = f.id
-    LEFT JOIN lecons l ON u.id = l.utilisateur_id AND l.statut = 'effectuée'
-    GROUP BY u.id
-    HAVING total_completed >= 3
-    ORDER BY total_completed DESC
-");
-
-// Get exam results summary by formation
-$exam_stats = $conn->query("
-    SELECT f.nom as formation_name,
-           COUNT(DISTINCT u.id) as total_students,
-           COUNT(DISTINCT CASE WHEN l.statut = 'effectuée' AND l.date_lecon >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN u.id END) as exam_eligible,
-           ROUND(COUNT(DISTINCT CASE WHEN l.statut = 'effectuée' AND l.date_lecon >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN u.id END) * 100.0 / COUNT(DISTINCT u.id), 1) as eligibility_rate
+// ── READ via les views ─────────────────────────────────────────────────────
+$eligible   = $pdo->query("SELECT * FROM v_examens_eligibles ORDER BY lecons_effectuees DESC")->fetchAll();
+$examStats  = $pdo->query("
+    SELECT
+        f.nom AS formation_nom,
+        COUNT(DISTINCT u.id) AS total_eleves,
+        COUNT(DISTINCT e.id) AS eligibles
     FROM formations f
-    LEFT JOIN utilisateurs u ON f.id = u.formation_id
-    LEFT JOIN lecons l ON u.id = l.utilisateur_id
-    GROUP BY f.id
-");
+    LEFT JOIN utilisateurs u ON u.formation_id = f.id
+    LEFT JOIN v_examens_eligibles e ON e.id = u.id
+    GROUP BY f.id, f.nom
+")->fetchAll();
+
+$pageTitle   = 'Examens — Auto École Pro';
+$dataTableId = 'eligibleTable';
+include BASE_PATH . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exams - Auto Ecole</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <?php include 'includes/sidebar.php'; ?>
-            
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Exams Management</h1>
-                </div>
 
-                <!-- Exam Statistics -->
-                <div class="row mb-4">
-                    <?php while($stat = $exam_stats->fetch_assoc()): ?>
-                    <div class="col-md-4">
-                        <div class="card text-white bg-primary mb-3">
-                            <div class="card-body">
-                                <h5 class="card-title"><?php echo $stat['formation_name']; ?></h5>
-                                <p class="card-text">
-                                    <strong>Total Students:</strong> <?php echo $stat['total_students']; ?><br>
-                                    <strong>Exam Eligible:</strong> <?php echo $stat['exam_eligible']; ?><br>
-                                    <strong>Eligibility Rate:</strong> <?php echo $stat['eligibility_rate']; ?>%
-                                </p>
-                                <div class="progress bg-light">
-                                    <div class="progress-bar bg-success" style="width: <?php echo $stat['eligibility_rate']; ?>%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endwhile; ?>
-                </div>
+<div class="page-header">
+    <h1 class="h2">Suivi des Examens</h1>
+</div>
 
-                <!-- Exam Eligible Students -->
-                <div class="card">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Exam Eligible Students (Completed 3+ Lessons)</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table id="eligibleTable" class="table table-striped">
-                                <thead>
-                                    <tr><th>ID</th><th>Student</th><th>Email</th><th>Phone</th><th>Formation</th><th>Completed Lessons</th><th>Status</th><th>Actions</th></tr>
-                                </thead>
-                                <tbody>
-                                    <?php while($row = $eligible->fetch_assoc()): ?>
-                                    <tr>
-                                        <td><?php echo $row['id']; ?></td>
-                                        <td><?php echo htmlspecialchars($row['prenom'] . ' ' . $row['nom']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['email']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['telephone']); ?></td>
-                                        <td><?php echo $row['formation_name']; ?></td>
-                                        <td>
-                                            <span class="badge bg-success"><?php echo $row['total_completed']; ?> lessons</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-success">Eligible for Exam</span>
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary" onclick="generateCertificate(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['prenom'] . ' ' . $row['nom']); ?>')">
-                                                <i class="bi bi-file-text"></i> Certificate
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <?php endwhile; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+<!-- ── Cartes d'éligibilité ─────────────────────────────────────────────── -->
+<div class="row mb-4">
+    <?php foreach ($examStats as $stat):
+        $pct = $stat['total_eleves'] > 0
+            ? round(($stat['eligibles'] / $stat['total_eleves']) * 100) : 0;
+    ?>
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title"><?= htmlspecialchars($stat['formation_nom']) ?></h5>
+                <p class="mb-1"><strong>Total élèves :</strong> <?= $stat['total_eleves'] ?></p>
+                <p class="mb-1"><strong>Éligibles :</strong> <?= $stat['eligibles'] ?></p>
+                <p class="mb-2"><strong>Taux :</strong> <?= $pct ?>%</p>
+                <div class="progress bg-light" style="height:8px;">
+                    <div class="progress-bar bg-success" style="width:<?= $pct ?>%;"></div>
                 </div>
-
-                <!-- Exam Schedule Notice -->
-                <div class="card mt-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Exam Schedule Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> 
-                            <strong>Exam Requirements:</strong>
-                            <ul class="mt-2 mb-0">
-                                <li>Complete minimum 3 driving lessons</li>
-                                <li>No outstanding payments</li>
-                                <li>Valid learner's permit</li>
-                            </ul>
-                        </div>
-                        <div class="alert alert-warning">
-                            <i class="bi bi-calendar"></i>
-                            <strong>Next Exam Dates:</strong>
-                            <ul class="mt-2 mb-0">
-                                <li>Theoretical Exam: Every Monday at 9:00 AM</li>
-                                <li>Practical Exam: Every Friday at 10:00 AM</li>
-                                <li>Location: Auto Ecole Testing Center</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </main>
+            </div>
         </div>
     </div>
+    <?php endforeach; ?>
+</div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('#eligibleTable').DataTable();
-        });
+<!-- ── Tableau élèves éligibles ─────────────────────────────────────────── -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Élèves éligibles (≥ 3 leçons effectuées)</h5>
+    </div>
+    <div class="card-body">
+        <table id="eligibleTable" class="table table-striped">
+            <thead>
+                <tr><th>ID</th><th>Élève</th><th>Email</th><th>Téléphone</th>
+                    <th>Formation</th><th>Leçons</th><th>Statut</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+            <?php foreach ($eligible as $row): ?>
+            <tr>
+                <td><?= $row['id'] ?></td>
+                <td><?= htmlspecialchars($row['nom_complet']) ?></td>
+                <td><?= htmlspecialchars($row['email']) ?></td>
+                <td><?= htmlspecialchars($row['telephone'] ?? '') ?></td>
+                <td><?= htmlspecialchars($row['formation_nom']) ?></td>
+                <td><span class="badge bg-success"><?= $row['lecons_effectuees'] ?></span></td>
+                <td><span class="badge bg-success">Éligible ✓</span></td>
+                <td>
+                    <a href="<?= BASE_URL ?>/pages/student_profile.php?id=<?= $row['id'] ?>"
+                       class="btn btn-sm btn-info">
+                        <i class="bi bi-eye"></i> Profil
+                    </a>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+            <?php if (empty($eligible)): ?>
+            <tr><td colspan="8" class="text-center text-muted py-3">
+                Aucun élève éligible pour le moment (minimum 3 leçons effectuées requis).
+            </td></tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
 
-        function generateCertificate(studentId, studentName) {
-            alert(`Certificate generated for ${studentName}\n\nThis student is eligible for the driving exam.\nPlease contact the exam coordinator to schedule the exam.`);
-        }
-    </script>
-</body>
-</html>
+<!-- ── Informations pratiques ────────────────────────────────────────────── -->
+<div class="card">
+    <div class="card-header bg-white"><h5 class="mb-0">Informations sur les examens</h5></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="alert alert-info mb-0">
+                    <strong><i class="bi bi-info-circle me-2"></i>Conditions d'éligibilité</strong>
+                    <ul class="mt-2 mb-0">
+                        <li>Minimum 3 leçons de conduite effectuées</li>
+                        <li>Permis d'apprenti conducteur valide</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="alert alert-warning mb-0">
+                    <strong><i class="bi bi-calendar me-2"></i>Calendrier des examens</strong>
+                    <ul class="mt-2 mb-0">
+                        <li>Théorique : chaque lundi à 9h00</li>
+                        <li>Pratique : chaque vendredi à 10h00</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php include BASE_PATH . '/includes/footer.php'; ?>
