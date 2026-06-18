@@ -17,6 +17,7 @@ if (empty($pageTitle)) { $pageTitle = 'Auto École Pro'; }
     <link rel="stylesheet" href="<?= BASE_URL ?>/node_modules/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/node_modules/bootstrap-icons/font/bootstrap-icons.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/node_modules/datatables.net-bs5/css/dataTables.bootstrap5.min.css">
+    <link rel="shortcut icon" href="<?=BASE_URL ?>/assets/images/favicon.ico" type="image/x-icon">
     <style>
         body { background-color: #f8f9fa; }
         .sidebar { min-height: 100vh; background-color: #2c3e50; }
