@@ -1,228 +1,105 @@
-<!-- instructors.php -->
 <?php
 /**
- * Instructors Management Page
- * CRUD operations for driving instructors
+ * pages/instructors.php — Moniteurs
+ * SELECT → v_moniteurs | CRUD → sp_ajouter/modifier/supprimer_moniteur()
  */
 session_start();
-require_once 'config/database.php';
+require_once __DIR__ . '/../config/database.php';
+require_once BASE_PATH . '/includes/auth.php';
+requireLogin();
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit();
+$message = ''; $error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add') {
+    requirePermission('crud_moniteurs');
+    $msg = callProcedure("CALL sp_ajouter_moniteur(?,?,?,?,?,@msg)",
+        [trim($_POST['nom']), trim($_POST['prenom']), trim($_POST['nationalite']),
+         trim($_POST['telephone']), (int)$_POST['experience']]);
+    $msg === 'OK' ? $message = 'Moniteur ajouté !' : $error = $msg;
 }
-
-$message = '';
-$error = '';
-
-// CREATE - Add new instructor
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
-    $nom = strtoupper(trim($_POST['nom']));
-    $prenom = trim($_POST['prenom']);
-    $nationalite = trim($_POST['nationalite']);
-    $telephone = trim($_POST['telephone']);
-    $experience = intval($_POST['experience']);
-    
-    $query = "INSERT INTO instructeurs (nom, prenom, nationalite, telephone, experience) VALUES (?, ?, ?, ?, ?)";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("ssssi", $nom, $prenom, $nationalite, $telephone, $experience);
-    
-    if ($stmt->execute()) {
-        $message = "Instructor added successfully!";
-    } else {
-        $error = "Error: " . $conn->error;
-    }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit') {
+    requirePermission('crud_moniteurs');
+    $msg = callProcedure("CALL sp_modifier_moniteur(?,?,?,?,?,?,@msg)",
+        [(int)$_POST['id'], trim($_POST['nom']), trim($_POST['prenom']),
+         trim($_POST['nationalite']), trim($_POST['telephone']), (int)$_POST['experience']]);
+    $msg === 'OK' ? $message = 'Moniteur modifié !' : $error = $msg;
 }
-
-// DELETE - Remove instructor
 if (isset($_GET['delete'])) {
-    $id = intval($_GET['delete']);
-    $query = "DELETE FROM instructeurs WHERE id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $id);
-    if ($stmt->execute()) {
-        $message = "Instructor deleted successfully!";
-    } else {
-        $error = "Cannot delete - instructor has lessons scheduled";
-    }
+    requirePermission('crud_moniteurs');
+    $msg = callProcedure("CALL sp_supprimer_moniteur(?,@msg)", [(int)$_GET['delete']]);
+    $msg === 'OK' ? $message = 'Moniteur supprimé !' : $error = 'Impossible : leçons associées.';
 }
 
-// UPDATE - Edit instructor
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit') {
-    $id = intval($_POST['id']);
-    $nom = strtoupper(trim($_POST['nom']));
-    $prenom = trim($_POST['prenom']);
-    $nationalite = trim($_POST['nationalite']);
-    $telephone = trim($_POST['telephone']);
-    $experience = intval($_POST['experience']);
-    
-    $query = "UPDATE instructeurs SET nom=?, prenom=?, nationalite=?, telephone=?, experience=? WHERE id=?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("ssssii", $nom, $prenom, $nationalite, $telephone, $experience, $id);
-    
-    if ($stmt->execute()) {
-        $message = "Instructor updated successfully!";
-    } else {
-        $error = "Error: " . $conn->error;
-    }
-}
+// ── READ via la VIEW v_moniteurs ──────────────────────────────────────────
+$instructors = $pdo->query("SELECT * FROM v_moniteurs ORDER BY nom")->fetchAll();
 
-// Fetch all instructors
-$instructors = $conn->query("SELECT * FROM instructeurs ORDER BY id");
+$pageTitle = 'Moniteurs — Auto École Pro'; $dataTableId = 'instructorsTable';
+include BASE_PATH . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instructors - Auto Ecole</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <?php include 'includes/sidebar.php'; ?>
-            
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Instructors Management</h1>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
-                        <i class="bi bi-person-badge-plus"></i> Add New Instructor
-                    </button>
-                </div>
+<div class="page-header">
+    <h1 class="h2">Moniteurs</h1>
+    <?php if (hasPermission('crud_moniteurs')): ?>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-person-badge-fill"></i> Ajouter
+    </button>
+    <?php endif; ?>
+</div>
+<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show"><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($error):   ?><div class="alert alert-danger alert-dismissible fade show"><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if (!isAdmin()): ?><div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Mode lecture seule.</div><?php endif; ?>
 
-                <?php if($message): ?>
-                    <div class="alert alert-success"><?php echo $message; ?></div>
-                <?php endif; ?>
-                <?php if($error): ?>
-                    <div class="alert alert-danger"><?php echo $error; ?></div>
-                <?php endif; ?>
-
-                <div class="card">
-                    <div class="card-body">
-                        <table id="instructorsTable" class="table table-striped">
-                            <thead>
-                                <tr><th>ID</th><th>Name</th><th>Nationality</th><th>Phone</th><th>Experience (years)</th><th>Actions</th></tr>
-                            </thead>
-                            <tbody>
-                                <?php while($row = $instructors->fetch_assoc()): ?>
-                                <tr>
-                                    <td><?php echo $row['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($row['prenom'] . ' ' . $row['nom']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['nationalite']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['telephone']); ?></td>
-                                    <td><?php echo $row['experience']; ?> years</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal-<?php echo $row['id']; ?>">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <a href="?delete=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this instructor?')">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Edit Modal -->
-                                <div class="modal fade" id="editModal-<?php echo $row['id']; ?>" tabindex="-1">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <form method="POST">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Edit Instructor</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <input type="hidden" name="action" value="edit">
-                                                    <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
-                                                    <div class="mb-3">
-                                                        <label>First Name</label>
-                                                        <input type="text" name="prenom" class="form-control" value="<?php echo htmlspecialchars($row['prenom']); ?>" required>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label>Last Name</label>
-                                                        <input type="text" name="nom" class="form-control" value="<?php echo htmlspecialchars($row['nom']); ?>" required>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label>Nationality</label>
-                                                        <input type="text" name="nationalite" class="form-control" value="<?php echo htmlspecialchars($row['nationalite']); ?>">
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label>Phone</label>
-                                                        <input type="text" name="telephone" class="form-control" value="<?php echo htmlspecialchars($row['telephone']); ?>">
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label>Experience (years)</label>
-                                                        <input type="number" name="experience" class="form-control" value="<?php echo $row['experience']; ?>" min="1" required>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </main>
-        </div>
+<div class="card"><div class="card-body">
+<table id="instructorsTable" class="table table-striped">
+<thead><tr><th>ID</th><th>Nom complet</th><th>Nationalité</th><th>Téléphone</th><th>Expérience</th><th>Actions</th></tr></thead>
+<tbody>
+<?php foreach ($instructors as $row): ?>
+<tr>
+    <td><?= $row['id'] ?></td>
+    <td><?= htmlspecialchars($row['nom_complet']) ?></td>
+    <td><?= htmlspecialchars($row['nationalite'] ?? '') ?></td>
+    <td><?= htmlspecialchars($row['telephone'] ?? '') ?></td>
+    <td><?= (int)$row['experience'] ?> ans</td>
+    <td>
+        <?php if (hasPermission('crud_moniteurs')): ?>
+        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal-<?= $row['id'] ?>"><i class="bi bi-pencil"></i></button>
+        <a href="?delete=<?= $row['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Supprimer ?')"><i class="bi bi-trash"></i></a>
+        <?php endif; ?>
+    </td>
+</tr>
+<?php if (hasPermission('crud_moniteurs')): ?>
+<div class="modal fade" id="editModal-<?= $row['id'] ?>" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content"><form method="POST">
+    <div class="modal-header"><h5 class="modal-title">Modifier moniteur</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="<?= $row['id'] ?>">
+      <div class="mb-3"><label class="form-label">Prénom</label><input type="text" name="prenom" class="form-control" value="<?= htmlspecialchars($row['prenom']) ?>" required></div>
+      <div class="mb-3"><label class="form-label">Nom</label><input type="text" name="nom" class="form-control" value="<?= htmlspecialchars($row['nom']) ?>" required></div>
+      <div class="mb-3"><label class="form-label">Nationalité</label><input type="text" name="nationalite" class="form-control" value="<?= htmlspecialchars($row['nationalite'] ?? '') ?>"></div>
+      <div class="mb-3"><label class="form-label">Téléphone</label><input type="text" name="telephone" class="form-control" value="<?= htmlspecialchars($row['telephone'] ?? '') ?>"></div>
+      <div class="mb-3"><label class="form-label">Expérience (ans)</label><input type="number" name="experience" class="form-control" value="<?= (int)$row['experience'] ?>" min="0" required></div>
     </div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+  </form></div></div>
+</div>
+<?php endif; ?>
+<?php endforeach; ?>
+</tbody></table>
+</div></div>
 
-    <!-- Add Instructor Modal -->
-    <div class="modal fade" id="addModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="POST">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Add New Instructor</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="add">
-                        <div class="mb-3">
-                            <label>First Name</label>
-                            <input type="text" name="prenom" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label>Last Name</label>
-                            <input type="text" name="nom" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label>Nationality</label>
-                            <input type="text" name="nationalite" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label>Phone</label>
-                            <input type="text" name="telephone" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label>Experience (years)</label>
-                            <input type="number" name="experience" class="form-control" min="1" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Instructor</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<?php if (hasPermission('crud_moniteurs')): ?>
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content"><form method="POST">
+    <div class="modal-header"><h5 class="modal-title">Ajouter un moniteur</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <input type="hidden" name="action" value="add">
+      <div class="mb-3"><label class="form-label">Prénom</label><input type="text" name="prenom" class="form-control" required></div>
+      <div class="mb-3"><label class="form-label">Nom</label><input type="text" name="nom" class="form-control" required></div>
+      <div class="mb-3"><label class="form-label">Nationalité</label><input type="text" name="nationalite" class="form-control"></div>
+      <div class="mb-3"><label class="form-label">Téléphone</label><input type="text" name="telephone" class="form-control"></div>
+      <div class="mb-3"><label class="form-label">Expérience (ans)</label><input type="number" name="experience" class="form-control" min="0" required></div>
     </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('#instructorsTable').DataTable();
-        });
-    </script>
-</body>
-</html>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Ajouter</button></div>
+  </form></div></div>
+</div>
+<?php endif; ?>
+<?php include BASE_PATH . '/includes/footer.php'; ?>
