@@ -1,24 +1,18 @@
-<!-- logout.php -->
 <?php
 /**
- * Logout Page - Destroy user session
+ * pages/actions/logout.php — Déconnexion
  */
 session_start();
+require_once __DIR__ . '/../../config/database.php';
 
-// Log the logout action
 if (isset($_SESSION['username'])) {
-    require_once 'config/database.php';
-    $username = $_SESSION['username'];
-    $log = "INSERT INTO journal_connexions (utilisateur, heure_connexion, statut, message) VALUES (?, NOW(), 'AUTORISÉE', 'User logged out')";
-    $stmt = $conn->prepare($log);
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
+    try {
+        $pdo->prepare("INSERT INTO journal_connexions (utilisateur, heure_connexion, statut, message)
+                       VALUES (?, NOW(), 'AUTORISÉE', 'Déconnexion')")
+            ->execute([$_SESSION['username']]);
+    } catch (PDOException $ignored) {}
 }
 
-// Destroy session
 session_destroy();
-
-// Redirect to login page
-header('Location: login.php');
+header('Location: ' . BASE_URL . '/pages/login.php');
 exit();
-?>
