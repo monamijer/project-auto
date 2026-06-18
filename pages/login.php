@@ -1,87 +1,112 @@
-<!-- login.php -->
 <?php
 /**
- * Login Page - Authenticate users
+ * pages/login.php — Connexion
+ * Utilise la stored procedure sp_connexion() + password_verify() PHP.
  */
 session_start();
-require_once 'config/database.php';
+require_once __DIR__ . '/../config/database.php';
+
+if (isset($_SESSION['user_id'])) {
+    header('Location: ' . BASE_URL . '/index.php');
+    exit();
+}
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    
-    // Simple authentication (in production, use proper password hashing)
-    $query = "SELECT * FROM expirations_utilisateurs WHERE utilisateur = ? AND statut = 'actif'";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $_SESSION['user_id'] = $username;
-        $_SESSION['username'] = $username;
-        
-        // Log successful connection
-        $log = "INSERT INTO journal_connexions (utilisateur, heure_connexion, statut, message) VALUES (?, NOW(), 'AUTORISÉE', 'Successful login')";
-        $stmt_log = $conn->prepare($log);
-        $stmt_log->bind_param("s", $username);
-        $stmt_log->execute();
-        
-        header('Location: index.php');
-        exit();
-    } else {
-        $error = 'Invalid username or account expired';
-        
-        // Log failed attempt
-        $log = "INSERT INTO journal_connexions (utilisateur, heure_connexion, statut, message) VALUES (?, NOW(), 'REFUSÉE', 'Failed login attempt')";
-        $stmt_log = $conn->prepare($log);
-        $stmt_log->bind_param("s", $username);
-        $stmt_log->execute();
+
+    // ── 1. Appel de la procédure : récupère id, rôle, hash, statut_réel ──
+    try {
+        $pdo->prepare("CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)")
+            ->execute([$username]);
+
+        $row = $pdo->query("SELECT @p_id AS id, @p_role AS role,
+                                   @p_hash AS hash, @p_statut AS statut")->fetch();
+    } catch (PDOException $e) {
+        $error = 'Erreur système : ' . $e->getMessage();
+        $row   = null;
     }
+
+    // ── 2. Vérification du mot de passe côté PHP ──────────────────────────
+    if ($row && $row['id'] && $row['statut'] === 'actif') {
+        if (password_verify($password, $row['hash'])) {
+            // ── Connexion réussie ─────────────────────────────────────────
+            $_SESSION['user_id']  = $row['id'];
+            $_SESSION['username'] = $username;
+            $_SESSION['role']     = $row['role']; // 'admin' ou 'stagiaire'
+
+            // Journal : mise à jour du statut de la tentative
+            $pdo->prepare("UPDATE journal_connexions SET statut='AUTORISÉE', message='Connexion réussie'
+                           WHERE utilisateur=? ORDER BY heure_connexion DESC LIMIT 1")
+                ->execute([$username]);
+
+            header('Location: ' . BASE_URL . '/index.php');
+            exit();
+        } else {
+            $error = 'Mot de passe incorrect.';
+        }
+    } elseif ($row && $row['statut'] !== 'actif') {
+        $error = 'Compte ' . htmlspecialchars($row['statut']) . '. Contactez un administrateur.';
+    } else {
+        $error = 'Identifiant introuvable.';
+    }
+
+    // Journal : marquer la tentative comme refusée
+    try {
+        $pdo->prepare("UPDATE journal_connexions SET statut='REFUSÉE', message=?
+                       WHERE utilisateur=? ORDER BY heure_connexion DESC LIMIT 1")
+            ->execute([$error, $username]);
+    } catch (PDOException $ignored) {}
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Auto Ecole</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Connexion — Auto École Pro</title>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/node_modules/bootstrap/dist/css/bootstrap.min.css">
     <style>
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
-        .login-card { border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        body {
+            background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card { border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,.2); max-width: 420px; width: 100%; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center min-vh-100 align-items-center">
-            <div class="col-md-4">
-                <div class="card login-card">
-                    <div class="card-body p-5">
-                        <h3 class="text-center mb-4">Auto Ecole</h3>
-                        <h5 class="text-center text-muted mb-4">Login to Dashboard</h5>
-                        
-                        <?php if($error): ?>
-                            <div class="alert alert-danger"><?php echo $error; ?></div>
-                        <?php endif; ?>
-                        
-                        <form method="POST">
-                            <div class="mb-3">
-                                <label class="form-label">Username</label>
-                                <input type="text" name="username" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Password</label>
-                                <input type="password" name="password" class="form-control" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Login</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+<div class="card login-card">
+    <div class="card-body p-4">
+        <h3 class="text-center mb-1">🚗 Auto École Pro</h3>
+        <p class="text-center text-muted mb-4">Connectez-vous pour continuer</p>
+
+        <?php if ($error): ?>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <?= htmlspecialchars($error) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+        <?php endif; ?>
+
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Identifiant</label>
+                <input type="text" name="username" class="form-control"
+                       value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
+                       required autofocus>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+        </form>
     </div>
+</div>
+<script src="<?= BASE_URL ?>/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
