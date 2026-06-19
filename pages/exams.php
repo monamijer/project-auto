@@ -9,17 +9,8 @@ require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
 // ── READ via les views ─────────────────────────────────────────────────────
-$eligible   = $pdo->query("SELECT * FROM v_examens_eligibles ORDER BY lecons_effectuees DESC")->fetchAll();
-$examStats  = $pdo->query("
-    SELECT
-        f.nom AS formation_nom,
-        COUNT(DISTINCT u.id) AS total_eleves,
-        COUNT(DISTINCT e.id) AS eligibles
-    FROM formations f
-    LEFT JOIN utilisateurs u ON u.formation_id = f.id
-    LEFT JOIN v_examens_eligibles e ON e.id = u.id
-    GROUP BY f.id, f.nom
-")->fetchAll();
+$eligible  = $pdo->query("SELECT * FROM v_examens_eligibles ORDER BY lecons_effectuees DESC")->fetchAll();
+$examStats = $pdo->query("SELECT * FROM v_stats_examens")->fetchAll(); // VIEW v_stats_examens
 
 $pageTitle   = 'Examens — Auto École Pro';
 $dataTableId = 'eligibleTable';
