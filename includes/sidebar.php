@@ -1,99 +1,63 @@
 <?php
 /**
- * includes/sidebar.php — Navigation (responsive off-canvas sur mobile)
+ * includes/sidebar.php — Navigation fixe
  */
 $currentFile = basename($_SERVER['PHP_SELF']);
 ?>
-<nav class="col-md-3 col-lg-2 d-md-block sidebar" id="appSidebar">
-    <div class="brand d-flex justify-content-between align-items-center">
-        <div>
-            <h5><i class="bi bi-car-front-fill"></i> Auto École Pro</h5>
-            <small>
-                <?= htmlspecialchars($_SESSION['username'] ?? '') ?>
-                <span class="badge <?= isAdmin() ? 'bg-warning text-dark' : 'bg-secondary' ?> ms-1">
-                    <?= isAdmin() ? 'Admin' : 'Stagiaire' ?>
-                </span>
-            </small>
+
+<nav class="sidebar" id="appSidebar">
+    <!-- Header -->
+    <div class="sidebar-header">
+        <div class="d-flex align-items-center justify-content-between">
+            <a href="<?= BASE_URL ?>/index.php" class="text-decoration-none text-white">
+                <i class="bi bi-car-front-fill me-2"></i><span class="fw-bold">Auto École Pro</span>
+            </a>
+            <button class="btn btn-sm text-white d-md-none p-0" onclick="document.getElementById('appSidebar').classList.remove('show'); document.getElementById('sidebarBackdrop').classList.remove('show');">
+                <i class="bi bi-x-lg fs-5"></i>
+            </button>
         </div>
-        <!-- Bouton fermer, visible uniquement en mode mobile (off-canvas) -->
-        <button class="btn-close btn-close-white d-md-none"
-                onclick="document.getElementById('appSidebar').classList.remove('show'); document.getElementById('sidebarBackdrop').classList.remove('show');"></button>
+        <div class="mt-2 d-flex align-items-center gap-2">
+            <span class="badge <?= isAdmin() ? 'bg-warning text-dark' : 'bg-light text-dark' ?>"><?= isAdmin() ? 'Admin' : 'Stagiaire' ?></span>
+            <small class="text-white-50"><?= htmlspecialchars($_SESSION['username'] ?? '') ?></small>
+        </div>
     </div>
 
-    <div class="position-sticky pt-2">
+    <!-- Body -->
+    <div class="sidebar-body">
+        <div class="px-3 py-2"><small class="text-white-50 text-uppercase fw-bold" style="font-size:0.65rem;letter-spacing:1.5px;">Principal</small></div>
         <ul class="nav flex-column px-2">
-
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='index.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/index.php">
-                    <i class="bi bi-speedometer2 me-2"></i> Tableau de bord
-                </a>
-            </li>
-
-            <!-- Recherche globale -->
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='search.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/search.php">
-                    <i class="bi bi-search me-2"></i> Recherche
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='students.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/students.php">
-                    <i class="bi bi-people me-2"></i> Élèves
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='instructors.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/instructors.php">
-                    <i class="bi bi-person-badge me-2"></i> Moniteurs
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='vehicles.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/vehicles.php">
-                    <i class="bi bi-car-front me-2"></i> Véhicules
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='lessons.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/lessons.php">
-                    <i class="bi bi-calendar-event me-2"></i> Leçons
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='payments.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/payments.php">
-                    <i class="bi bi-cash-stack me-2"></i> Paiements
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='enrollments.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/enrollments.php">
-                    <i class="bi bi-journal-bookmark-fill me-2"></i> Inscriptions
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='exams.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/exams.php">
-                    <i class="bi bi-file-text me-2"></i> Examens
-                </a>
-            </li>
-
-            <?php if (hasPermission('gestion_comptes')): ?>
-            <!-- Corbeille : admin uniquement -->
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='corbeille.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/corbeille.php">
-                    <i class="bi bi-trash3 me-2"></i> Corbeille
-                </a>
-            </li>
-            <?php endif; ?>
-
-            <?php if (hasPermission('voir_parametres')): ?>
-            <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='settings.php' ? 'active':'' ?>" href="<?= BASE_URL ?>/pages/settings.php">
-                    <i class="bi bi-gear me-2"></i> Paramètres
-                </a>
-            </li>
-            <?php endif; ?>
-
-            <li class="nav-item mt-3">
-                <a class="nav-link text-danger" href="<?= BASE_URL ?>/pages/actions/logout.php">
-                    <i class="bi bi-box-arrow-right me-2"></i> Déconnexion
-                </a>
-            </li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='index.php'?'active':'' ?>" href="<?= BASE_URL ?>/index.php"><i class="bi bi-grid-1x2-fill me-2"></i>Tableau de bord</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='search.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/search.php"><i class="bi bi-search me-2"></i>Recherche</a></li>
         </ul>
+
+        <div class="px-3 py-2 mt-2"><small class="text-white-50 text-uppercase fw-bold" style="font-size:0.65rem;letter-spacing:1.5px;">Gestion</small></div>
+        <ul class="nav flex-column px-2">
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='students.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/students.php"><i class="bi bi-people me-2"></i>Élèves</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='instructors.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/instructors.php"><i class="bi bi-person-badge me-2"></i>Moniteurs</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='vehicles.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/vehicles.php"><i class="bi bi-car-front me-2"></i>Véhicules</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='lessons.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/lessons.php"><i class="bi bi-calendar-check me-2"></i>Leçons</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='payments.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/payments.php"><i class="bi bi-cash me-2"></i>Paiements</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='enrollments.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/enrollments.php"><i class="bi bi-journal-text me-2"></i>Inscriptions</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='exams.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/exams.php"><i class="bi bi-clipboard-check me-2"></i>Examens</a></li>
+        </ul>
+
+        <?php if (hasPermission('gestion_comptes') || hasPermission('voir_parametres')): ?>
+        <div class="px-3 py-2 mt-2"><small class="text-white-50 text-uppercase fw-bold" style="font-size:0.65rem;letter-spacing:1.5px;">Administration</small></div>
+        <ul class="nav flex-column px-2">
+            <?php if (hasPermission('gestion_comptes')): ?>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='corbeille.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/corbeille.php"><i class="bi bi-trash3 me-2"></i>Corbeille</a></li>
+            <?php endif; ?>
+            <?php if (hasPermission('voir_parametres')): ?>
+            <li class="nav-item"><a class="nav-link <?= $currentFile==='settings.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/settings.php"><i class="bi bi-gear me-2"></i>Paramètres</a></li>
+            <?php endif; ?>
+        </ul>
+        <?php endif; ?>
+    </div>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+        <a href="<?= BASE_URL ?>/pages/actions/logout.php" class="btn btn-sm btn-outline-light w-100">
+            <i class="bi bi-box-arrow-right me-1"></i>Déconnexion
+        </a>
     </div>
 </nav>
