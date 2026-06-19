@@ -37,10 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['username'] = $username;
             $_SESSION['role']     = $row['role']; // 'admin' ou 'stagiaire'
 
-            // Journal : mise à jour du statut de la tentative
-            $pdo->prepare("UPDATE journal_connexions SET statut='AUTORISÉE', message='Connexion réussie'
-                           WHERE utilisateur=? ORDER BY heure_connexion DESC LIMIT 1")
-                ->execute([$username]);
+            // Journal via procédure stockée (plus de UPDATE brut)
+            require_once BASE_PATH . '/includes/auth.php';
+            callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'AUTORISÉE', 'Connexion réussie']);
 
             header('Location: ' . BASE_URL . '/index.php');
             exit();
@@ -53,12 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Identifiant introuvable.';
     }
 
-    // Journal : marquer la tentative comme refusée
-    try {
-        $pdo->prepare("UPDATE journal_connexions SET statut='REFUSÉE', message=?
-                       WHERE utilisateur=? ORDER BY heure_connexion DESC LIMIT 1")
-            ->execute([$error, $username]);
-    } catch (PDOException $ignored) {}
+    // Journal via procédure stockée (plus de UPDATE brut)
+    require_once BASE_PATH . '/includes/auth.php';
+    callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'REFUSÉE', $error]);
 }
 ?>
 <!DOCTYPE html>
