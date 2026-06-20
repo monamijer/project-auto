@@ -14,18 +14,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add')
     requirePermission('crud_paiements');
     $msg = callProcedure("CALL sp_enregistrer_paiement(?,?,?,?,@msg)",
         [(int)$_POST['student_id'], (float)$_POST['montant'], $_POST['date_paiement'], $_POST['methode']]);
-    $msg === 'OK' ? $message = 'Paiement enregistré !' : $error = $msg;
+    if ($msg==='OK') { $message='Paiement enregistré !'; logActivity('AJOUT','paiements',null,$_POST['montant'].' \$'); notifyAdmins('Nouveau paiement','Un paiement de '.$_POST['montant'].' \$ a été enregistré.','/pages/payments.php'); } else { $error=$msg; }
 }
 if (isset($_GET['delete'])) {
     requirePermission('crud_paiements');
     $msg = callProcedure("CALL sp_supprimer_paiement(?,@msg)", [(int)$_GET['delete']]);
-    $msg === 'OK' ? $message = 'Paiement supprimé.' : $error = $msg;
+    if ($msg==='OK') { $message='Paiement supprimé.'; logActivity('SUPPRESSION','paiements',(int)$_GET['delete']); } else { $error=$msg; }
 }
 
 $payments    = $pdo->query("SELECT * FROM v_paiements ORDER BY date_paiement DESC")->fetchAll();
-$totalPercu  = $pdo->query("SELECT COALESCE(SUM(montant),0) FROM paiement")->fetchColumn();
-$totalDu     = $pdo->query("SELECT COALESCE(SUM(f.prix),0) FROM utilisateurs u JOIN formations f ON u.formation_id=f.id")->fetchColumn();
-$students    = $pdo->query("SELECT u.id, CONCAT(u.prenom,' ',u.nom,' — ',f.nom,' (',f.prix,' $)') AS label FROM utilisateurs u JOIN formations f ON u.formation_id=f.id ORDER BY u.prenom")->fetchAll();
+$finances    = $pdo->query("SELECT * FROM v_stats_financieres")->fetch();
+$totalPercu  = $finances['total_percu'];
+$totalDu     = $finances['total_attendu'];
+$students    = $pdo->query("SELECT id, label_paiement AS label FROM v_eleves_select")->fetchAll();
 
 // Pagination
 $perPage = 20;

@@ -1,10 +1,11 @@
 <?php
 /**
- * pages/login.php — Connexion
- * Utilise la stored procedure sp_connexion() + password_verify() PHP.
+ * pages/login.php — Connexion avec verrouillage automatique
+ * sp_connexion() + password_verify() + sp_incrementer_tentative()/sp_reset_tentatives()
  */
 session_start();
 require_once __DIR__ . '/../config/database.php';
+require_once BASE_PATH . '/includes/auth.php';
 
 if (isset($_SESSION['user_id'])) {
     header('Location: ' . BASE_URL . '/index.php');
@@ -12,42 +13,54 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $error = '';
+if (isset($_GET['expired'])) {
+    $error = 'Session expirée par inactivité. Veuillez vous reconnecter.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    try {
-        $pdo->prepare("CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)")
-            ->execute([$username]);
-        $row = $pdo->query("SELECT @p_id AS id, @p_role AS role, @p_hash AS hash, @p_statut AS statut")->fetch();
-    } catch (PDOException $e) {
-        $error = 'Erreur système.';
-        $row = null;
-    }
+    // ── 1. Vérifier le verrouillage (tentatives échouées) ─────────────────
+    $lockCheck = $pdo->prepare("SELECT tentatives_echouees, verrouille_jusqua FROM expirations_utilisateurs WHERE utilisateur = ?");
+    $lockCheck->execute([$username]);
+    $lockRow = $lockCheck->fetch();
 
-    if ($row && $row['id'] && $row['statut'] === 'actif') {
-        if (password_verify($password, $row['hash'])) {
-            $_SESSION['user_id']  = $row['id'];
-            $_SESSION['username'] = $username;
-            $_SESSION['role']     = $row['role'];
-
-            require_once BASE_PATH . '/includes/auth.php';
-            callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'AUTORISÉE', 'Connexion réussie']);
-
-            header('Location: ' . BASE_URL . '/index.php');
-            exit();
-        } else {
-            $error = 'Mot de passe incorrect.';
-        }
-    } elseif ($row && $row['statut'] !== 'actif') {
-        $error = 'Compte ' . htmlspecialchars($row['statut']) . '. Contactez un administrateur.';
+    if ($lockRow && $lockRow['verrouille_jusqua'] && strtotime($lockRow['verrouille_jusqua']) > time()) {
+        $minutes = ceil((strtotime($lockRow['verrouille_jusqua']) - time()) / 60);
+        $error = "Compte verrouillé suite à trop de tentatives échouées. Réessayez dans $minutes minute(s).";
     } else {
-        $error = 'Identifiant introuvable.';
-    }
+        try {
+            $pdo->prepare("CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)")->execute([$username]);
+            $row = $pdo->query("SELECT @p_id AS id, @p_role AS role, @p_hash AS hash, @p_statut AS statut")->fetch();
+        } catch (PDOException $e) {
+            $error = 'Erreur système.';
+            $row = null;
+        }
 
-    require_once BASE_PATH . '/includes/auth.php';
-    callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'REFUSÉE', $error]);
+        if ($row && $row['id'] && $row['statut'] === 'actif') {
+            if (password_verify($password, $row['hash'])) {
+                callProcedure("CALL sp_reset_tentatives(?,@msg)", [$username]);
+
+                $_SESSION['user_id']       = $row['id'];
+                $_SESSION['username']      = $username;
+                $_SESSION['role']          = $row['role'];
+                $_SESSION['last_activity'] = time();
+
+                callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'AUTORISÉE', 'Connexion réussie']);
+                header('Location: ' . BASE_URL . '/index.php');
+                exit();
+            } else {
+                callProcedure("CALL sp_incrementer_tentative(?,@msg)", [$username]);
+                $error = 'Mot de passe incorrect.';
+            }
+        } elseif ($row && $row['statut'] !== 'actif') {
+            $error = 'Compte ' . htmlspecialchars($row['statut']) . '. Contactez un administrateur.';
+        } else {
+            $error = 'Identifiant introuvable.';
+        }
+        callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'REFUSÉE', $error]);
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -59,24 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="<?= BASE_URL ?>/node_modules/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/node_modules/bootstrap-icons/font/bootstrap-icons.css">
     <style>
-        body {
-            background: #f5f7fb;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .login-card {
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,.08);
-            max-width: 420px;
-            width: 100%;
-            border: 0;
-        }
-        .login-card .card-body { padding: 2.5rem; }
-        .form-control { border-radius: 8px; padding: 0.6rem 1rem; }
-        .form-control:focus { box-shadow: 0 0 0 3px rgba(13,110,253,.15); border-color: #86b7fe; }
-        .btn-primary { border-radius: 8px; padding: 0.65rem; font-weight: 500; }
+        body { background:#f5f7fb; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+        .login-card { border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,.08); max-width:420px; width:100%; border:0; }
+        .login-card .card-body { padding:2.5rem; }
+        .form-control { border-radius:8px; padding:.6rem 1rem; }
+        .form-control:focus { box-shadow:0 0 0 3px rgba(13,110,253,.15); border-color:#86b7fe; }
+        .btn-primary { border-radius:8px; padding:.65rem; font-weight:500; }
     </style>
 </head>
 <body>
@@ -104,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="username" class="form-control" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" required autofocus>
                 </div>
             </div>
-            <div class="mb-4">
+            <div class="mb-3">
                 <label class="form-label small fw-medium">Mot de passe</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-lock text-muted"></i></span>
@@ -113,6 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button type="submit" class="btn btn-primary w-100">Se connecter</button>
         </form>
+        <p class="text-center text-muted mt-3 mb-0" style="font-size:.78rem;">
+            <i class="bi bi-shield-lock"></i> Le compte se verrouille 15 min après 5 échecs.
+        </p>
     </div>
 </div>
 <script src="<?= BASE_URL ?>/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

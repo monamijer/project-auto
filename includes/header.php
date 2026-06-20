@@ -5,6 +5,12 @@
 require_once BASE_PATH . '/includes/auth.php';
 
 if (empty($pageTitle)) { $pageTitle = 'Auto École Pro'; }
+
+// Notifications non lues (admins)
+$notifCount = 0;
+if (isAdmin()) {
+    $notifCount = (int) $pdo->query("SELECT COUNT(*) FROM notifications WHERE destinataire='all' AND lu=0")->fetchColumn();
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -25,7 +31,16 @@ if (empty($pageTitle)) { $pageTitle = 'Auto École Pro'; }
         <i class="bi bi-list"></i>
     </button>
     <strong><i class="bi bi-car-front-fill me-1"></i>Auto École Pro</strong>
+    <?php if (isAdmin()): ?>
+    <a href="<?= BASE_URL ?>/pages/notifications.php" class="text-white position-relative">
+        <i class="bi bi-bell fs-5"></i>
+        <?php if ($notifCount > 0): ?>
+        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill" style="font-size:.6rem;"><?= $notifCount ?></span>
+        <?php endif; ?>
+    </a>
+    <?php else: ?>
     <span style="width:24px;"></span>
+    <?php endif; ?>
 </div>
 
 <!-- Backdrop -->

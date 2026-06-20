@@ -14,28 +14,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add')
     requirePermission('crud_lecons');
     $msg = callProcedure("CALL sp_planifier_lecon(?,?,?,?,@msg)",
         [(int)$_POST['student_id'], (int)$_POST['instructor_id'], (int)$_POST['vehicle_id'], $_POST['date_lecon']]);
-    $msg === 'OK' ? $message = 'Leçon planifiée !' : $error = $msg;
+    if ($msg==='OK') { $message='Leçon planifiée !'; logActivity('AJOUT','lecons'); notifyAdmins('Nouvelle leçon planifiée','Une leçon a été planifiée le '.$_POST['date_lecon'],'/pages/lessons.php'); } else { $error=$msg; }
 }
 if (isset($_GET['complete'])) {
     requirePermission('crud_lecons');
     callProcedure("CALL sp_completer_lecon(?,@msg)", [(int)$_GET['complete']]);
+    logActivity('MODIFICATION','lecons',(int)$_GET['complete'],'Marquée effectuée');
     $message = 'Leçon marquée effectuée !';
 }
 if (isset($_GET['cancel'])) {
     requirePermission('crud_lecons');
     callProcedure("CALL sp_annuler_lecon(?,@msg)", [(int)$_GET['cancel']]);
+    logActivity('MODIFICATION','lecons',(int)$_GET['cancel'],'Annulée');
     $message = 'Leçon annulée.';
 }
 if (isset($_GET['delete'])) {
     requirePermission('crud_lecons');
     callProcedure("CALL sp_supprimer_lecon(?,@msg)", [(int)$_GET['delete']]);
+    logActivity('SUPPRESSION','lecons',(int)$_GET['delete']);
     $message = 'Leçon supprimée.';
 }
 
 $lessons     = $pdo->query("SELECT * FROM v_lecons ORDER BY date_lecon DESC")->fetchAll();
-$students    = $pdo->query("SELECT id, CONCAT(prenom,' ',nom) AS nom_complet FROM utilisateurs ORDER BY prenom")->fetchAll();
-$instructors = $pdo->query("SELECT id, CONCAT(prenom,' ',nom) AS nom_complet FROM instructeurs ORDER BY prenom")->fetchAll();
-$vehicles    = $pdo->query("SELECT id, CONCAT(marque,' ',modele,' (',immatriculation,')') AS label FROM vehicules WHERE disponibilite=1 ORDER BY marque")->fetchAll();
+$students    = $pdo->query("SELECT * FROM v_eleves_select")->fetchAll();
+$instructors = $pdo->query("SELECT * FROM v_moniteurs_select")->fetchAll();
+$vehicles    = $pdo->query("SELECT * FROM v_vehicules_disponibles")->fetchAll();
 
 // Pagination
 $perPage = 20;

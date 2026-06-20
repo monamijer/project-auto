@@ -18,18 +18,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='add_compte'
     $hash = password_hash($_POST['mot_de_passe'], PASSWORD_BCRYPT);
     $msg  = callProcedure("CALL sp_ajouter_compte(?,?,?,?,?,?,@msg)",
         [trim($_POST['utilisateur']), $hash, $_POST['role'], $_POST['date_expiration'], $_POST['statut'], trim($_POST['commentaire']??'')]);
-    $msg==='OK' ? $message='Compte créé !' : $error=$msg;
+    if ($msg==='OK') { $message='Compte créé !'; logActivity('AJOUT','comptes',null,trim($_POST['utilisateur'])); } else { $error=$msg; }
 }
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='edit_compte') {
     requirePermission('gestion_comptes');
     $msg = callProcedure("CALL sp_modifier_compte(?,?,?,?,?,@msg)",
         [(int)$_POST['id'], $_POST['role'], $_POST['date_expiration'], $_POST['statut'], trim($_POST['commentaire']??'')]);
-    $msg==='OK' ? $message='Compte mis à jour !' : $error=$msg;
+    if ($msg==='OK') { $message='Compte mis à jour !'; logActivity('MODIFICATION','comptes',(int)$_POST['id']); } else { $error=$msg; }
 }
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='renouveler') {
     requirePermission('gestion_comptes');
     $msg = callProcedure("CALL sp_renouveler_compte(?,?,@msg)", [(int)$_POST['id'], $_POST['nouvelle_expiration']]);
-    $msg==='OK' ? $message='Compte renouvelé et réactivé !' : $error=$msg;
+    if ($msg==='OK') { $message='Compte renouvelé et réactivé !'; logActivity('MODIFICATION','comptes',(int)$_POST['id'],'Renouvelé'); } else { $error=$msg; }
 }
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='changer_mdp') {
     requirePermission('gestion_comptes');
@@ -47,13 +47,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='bloquer') {
         $error = 'Vous ne pouvez pas vous bloquer vous-même.';
     } else {
         $msg = callProcedure("CALL sp_bloquer_utilisateur(?,?,@msg)", [(int)$_POST['id'], trim($_POST['raison'] ?: 'Comportement inapproprié')]);
-        $msg==='OK' ? $message='Utilisateur bloqué.' : $error=$msg;
+        if ($msg==='OK') { $message='Utilisateur bloqué.'; logActivity('BLOCAGE','comptes',(int)$_POST['id'],trim($_POST['raison'])); } else { $error=$msg; }
     }
+}
+if (isset($_GET['deverrouiller'])) {
+    requirePermission('gestion_comptes');
+    $msg = callProcedure("CALL sp_deverrouiller_compte(?,@msg)", [(int)$_GET['deverrouiller']]);
+    if ($msg==='OK') { $message='Compte déverrouillé (tentatives réinitialisées).'; logActivity('DEBLOCAGE','comptes',(int)$_GET['deverrouiller'],'Déverrouillage auto-lock'); } else { $error=$msg; }
 }
 if (isset($_GET['debloquer'])) {
     requirePermission('gestion_comptes');
     $msg = callProcedure("CALL sp_debloquer_utilisateur(?,@msg)", [(int)$_GET['debloquer']]);
-    $msg==='OK' ? $message='Utilisateur débloqué.' : $error=$msg;
+    if ($msg==='OK') { $message='Utilisateur débloqué.'; logActivity('DEBLOCAGE','comptes',(int)$_GET['debloquer']); } else { $error=$msg; }
 }
 if (isset($_GET['delete_compte'])) {
     requirePermission('gestion_comptes');
@@ -61,11 +66,16 @@ if (isset($_GET['delete_compte'])) {
         $error = 'Vous ne pouvez pas supprimer votre propre compte.';
     } else {
         $msg = callProcedure("CALL sp_supprimer_compte(?,@msg)", [(int)$_GET['delete_compte']]);
-        $msg==='OK' ? $message='Compte supprimé.' : $error=$msg;
+        if ($msg==='OK') { $message='Compte supprimé.'; logActivity('SUPPRESSION','comptes',(int)$_GET['delete_compte']); } else { $error=$msg; }
     }
 }
 
-$comptes = $pdo->query("SELECT * FROM v_comptes ORDER BY utilisateur")->fetchAll();
+$comptes = $pdo->query("
+    SELECT v.*, e.tentatives_echouees, e.verrouille_jusqua
+    FROM v_comptes v JOIN expirations_utilisateurs e ON e.id = v.id
+    ORDER BY v.utilisateur
+")->fetchAll();
+$activites = $pdo->query("SELECT * FROM v_journal_activites")->fetchAll(); // Journal des actions CRUD
 $journal = $pdo->query("SELECT * FROM v_journal")->fetchAll();
 $sysInfo = $pdo->query("SELECT * FROM v_sys_info")->fetch();
 
@@ -107,10 +117,14 @@ include BASE_PATH . '/includes/header.php';
                         default => ucfirst($c['statut_reel']),
                     };
                 ?>
-                <tr>
+                <?php $estVerrouille = $c['verrouille_jusqua'] && strtotime($c['verrouille_jusqua']) > time(); ?>
+                <tr class="<?= $estVerrouille ? 'table-warning' : '' ?>">
                     <td class="ps-3">
                         <strong><?= htmlspecialchars($c['utilisateur']) ?></strong>
                         <?= $c['id']==$_SESSION['user_id'] ? '<span class="badge bg-info bg-opacity-10 text-info ms-1">Vous</span>' : '' ?>
+                        <?php if ($estVerrouille): ?>
+                        <span class="badge bg-dark ms-1" title="Verrouillage auto (tentatives échouées)"><i class="bi bi-lock-fill"></i> Verrouillé</span>
+                        <?php endif; ?>
                     </td>
                     <td><span class="badge bg-light text-dark"><?= $c['role'] ?></span></td>
                     <td><small><?= htmlspecialchars($c['date_expiration']) ?></small></td>
@@ -123,6 +137,9 @@ include BASE_PATH . '/includes/header.php';
                             <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renewModal-<?= $c['id'] ?>" title="Renouveler"><i class="bi bi-arrow-clockwise"></i></button>
                             <?php endif; ?>
                             <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#mdpModal-<?= $c['id'] ?>" title="Mot de passe"><i class="bi bi-key"></i></button>
+                            <?php if ($estVerrouille): ?>
+                            <a href="?deverrouiller=<?= $c['id'] ?>" class="btn btn-outline-dark" title="Déverrouiller (tentatives échouées)" onclick="return confirm('Déverrouiller ce compte ?')"><i class="bi bi-unlock-fill"></i></a>
+                            <?php endif; ?>
                             <?php if ($c['id'] != $_SESSION['user_id']): ?>
                                 <?php if ($c['statut']==='suspendu'): ?>
                                 <a href="?debloquer=<?= $c['id'] ?>" class="btn btn-outline-success" title="Débloquer" onclick="return confirm('Débloquer ?')"><i class="bi bi-unlock"></i></a>
@@ -200,6 +217,39 @@ include BASE_PATH . '/includes/header.php';
                     <td><small><?= htmlspecialchars($j['message'] ?? '') ?></small></td>
                 </tr>
                 <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Journal des activités CRUD -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Journal des activités (100 dernières)</h5></div>
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height:350px;overflow-y:auto;">
+            <table class="table table-sm mb-0">
+                <thead class="table-light"><tr><th class="ps-3">Date</th><th>Utilisateur</th><th>Action</th><th>Module</th><th>Détails</th></tr></thead>
+                <tbody>
+                <?php foreach ($activites as $a):
+                    $actBadge = match($a['action']) {
+                        'AJOUT' => 'bg-success bg-opacity-10 text-success', 'MODIFICATION' => 'bg-warning bg-opacity-10 text-warning',
+                        'SUPPRESSION' => 'bg-danger bg-opacity-10 text-danger', 'RESTAURATION' => 'bg-info bg-opacity-10 text-info',
+                        'BLOCAGE' => 'bg-dark bg-opacity-10 text-dark', 'DEBLOCAGE' => 'bg-secondary bg-opacity-10 text-secondary',
+                        'EXPORT' => 'bg-primary bg-opacity-10 text-primary', default => 'bg-secondary bg-opacity-10 text-secondary',
+                    };
+                ?>
+                <tr>
+                    <td class="ps-3"><small><?= htmlspecialchars($a['date_action']) ?></small></td>
+                    <td><?= htmlspecialchars($a['utilisateur']) ?></td>
+                    <td><span class="badge <?= $actBadge ?>"><?= htmlspecialchars($a['action']) ?></span></td>
+                    <td><?= htmlspecialchars($a['module']) ?> <?= $a['element_id'] ? '#'.$a['element_id'] : '' ?></td>
+                    <td><small class="text-muted"><?= htmlspecialchars($a['details'] ?? '') ?></small></td>
+                </tr>
+                <?php endforeach; ?>
+                <?php if (empty($activites)): ?>
+                <tr><td colspan="5" class="text-center text-muted py-3">Aucune activité enregistrée.</td></tr>
+                <?php endif; ?>
                 </tbody>
             </table>
         </div>
