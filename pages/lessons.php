@@ -41,7 +41,7 @@ $instructors = $pdo->query("SELECT * FROM v_moniteurs_select")->fetchAll();
 $vehicles    = $pdo->query("SELECT * FROM v_vehicules_disponibles")->fetchAll();
 
 // Pagination
-$perPage = 20;
+$perPage = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $search = trim($_GET['search'] ?? '');
 $filter = $_GET['filter'] ?? '';
