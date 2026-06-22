@@ -25,6 +25,8 @@ $paiements = $pdo->query($sqlPaiements)->fetchAll();
 $totalPeriode = array_sum(array_column($paiements, 'Montant'));
 
 logActivity('EXPORT', 'rapport_pdf', null, $periode);
+
+include BASE_PATH . '/includes/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
