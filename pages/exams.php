@@ -12,7 +12,7 @@ $eligible  = $pdo->query("SELECT * FROM v_examens_eligibles ORDER BY lecons_effe
 $examStats = $pdo->query("SELECT * FROM v_stats_examens")->fetchAll();
 
 // Pagination
-$perPage = 20;
+$perPage = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $totalEligible = count($eligible);
 $totalPages = ceil($totalEligible / $perPage);
@@ -64,7 +64,6 @@ include BASE_PATH . '/includes/header.php';
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">#ID</th>
                         <th>Élève</th>
                         <th>Contact</th>
                         <th>Formation</th>
@@ -81,7 +80,6 @@ include BASE_PATH . '/includes/header.php';
                 <?php else: ?>
                 <?php foreach ($eligiblePage as $row): ?>
                 <tr>
-                    <td class="ps-3"><span class="badge bg-secondary bg-opacity-10 text-secondary">#<?= $row['id'] ?></span></td>
                     <td><span class="fw-medium"><?= htmlspecialchars($row['nom_complet']) ?></span></td>
                     <td>
                         <small>
