@@ -33,7 +33,7 @@ if (isset($_GET['delete'])) {
 $instructors = $pdo->query("SELECT * FROM v_moniteurs ORDER BY nom")->fetchAll();
 
 // Pagination
-$perPage = 20;
+$perPage = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $search = trim($_GET['search'] ?? '');
 if ($search !== '') {
@@ -106,7 +106,7 @@ include BASE_PATH . '/includes/header.php';
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">#ID</th>
+                        <th class="ps-3">#Matricule</th>
                         <th>Nom complet</th>
                         <th>Nationalité</th>
                         <th>Téléphone</th>
