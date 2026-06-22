@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add')
     requirePermission('crud_paiements');
     $msg = callProcedure("CALL sp_enregistrer_paiement(?,?,?,?,@msg)",
         [(int)$_POST['student_id'], (float)$_POST['montant'], $_POST['date_paiement'], $_POST['methode']]);
-    if ($msg==='OK') { $message='Paiement enregistré !'; logActivity('AJOUT','paiements',null,$_POST['montant'].' \$'); notifyAdmins('Nouveau paiement','Un paiement de '.$_POST['montant'].' \$ a été enregistré.','/pages/payments.php'); } else { $error=$msg; }
+    if ($msg==='OK') { $message='Paiement enregistré !'; logActivity('AJOUT','paiements',null,$_POST['montant'].' \$'); notifyAdmins('Nouveau paiement','Un paiement de '.$_POST['montant'].'.00$ a été enregistré.','/pages/payments.php'); } else { $error=$msg; }
 }
 if (isset($_GET['delete'])) {
     requirePermission('crud_paiements');
@@ -29,7 +29,7 @@ $totalDu     = $finances['total_attendu'];
 $students    = $pdo->query("SELECT id, label_paiement AS label FROM v_eleves_select")->fetchAll();
 
 // Pagination
-$perPage = 20;
+$perPage = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $search = trim($_GET['search'] ?? '');
 if ($search !== '') {
