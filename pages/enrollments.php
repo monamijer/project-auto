@@ -12,7 +12,7 @@ $formationStats = $pdo->query("SELECT * FROM v_stats_formations ORDER BY id")->f
 $enrollments    = $pdo->query("SELECT * FROM v_inscriptions ORDER BY date_inscription DESC")->fetchAll();
 
 // Pagination
-$perPage = 20;
+$perPage = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $totalEnrollments = count($enrollments);
 $totalPages = ceil($totalEnrollments / $perPage);
