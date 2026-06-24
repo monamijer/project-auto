@@ -6,12 +6,23 @@ $currentFile = basename($_SERVER['PHP_SELF']);
 $notifCountSidebar = isAdmin()
     ? (int) $pdo->query("SELECT COUNT(*) FROM notifications WHERE destinataire='all' AND lu=0")->fetchColumn()
     : 0;
+
+// Vérifier la photo de profil
+$photoExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+$sidebarPhoto = null;
+foreach ($photoExtensions as $ext) {
+    $path = BASE_PATH . '/uploads/profiles/profile_' . $_SESSION['user_id'] . '.' . $ext;
+    if (file_exists($path)) {
+        $sidebarPhoto = BASE_URL . '/uploads/profiles/profile_' . $_SESSION['user_id'] . '.' . $ext . '?v=' . filemtime($path);
+        break;
+    }
+}
 ?>
 
 <nav class="sidebar" id="appSidebar">
     <!-- Header -->
     <div class="sidebar-header">
-        <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center justify-content-between mb-2">
             <a href="<?= BASE_URL ?>/index.php" class="text-decoration-none text-white">
                 <i class="bi bi-car-front-fill me-2"></i><span class="fw-bold">Auto École Pro</span>
             </a>
@@ -19,10 +30,21 @@ $notifCountSidebar = isAdmin()
                 <i class="bi bi-x-lg fs-5"></i>
             </button>
         </div>
-        <div class="mt-2 d-flex align-items-center gap-2">
-            <span class="badge <?= isAdmin() ? 'bg-warning text-dark' : 'bg-light text-dark' ?>"><?= isAdmin() ? 'Admin' : 'Stagiaire' ?></span>
-            <small class="text-white-50"><?= htmlspecialchars($_SESSION['username'] ?? '') ?></small>
-        </div>
+        <a href="<?= BASE_URL ?>/pages/profile.php" class="text-decoration-none">
+            <div class="d-flex align-items-center gap-2 mt-2">
+                <?php if ($sidebarPhoto): ?>
+                    <img src="<?= $sidebarPhoto ?>" alt="Photo" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;border:2px solid rgba(255,255,255,0.3);">
+                <?php else: ?>
+                    <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                        <span class="text-white fw-bold small"><?= strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1)) ?></span>
+                    </div>
+                <?php endif; ?>
+                <div>
+                    <div class="text-white small fw-medium lh-sm"><?= htmlspecialchars($_SESSION['username'] ?? '') ?></div>
+                    <span class="badge <?= isAdmin() ? 'bg-warning text-dark' : 'bg-light text-dark' ?> mt-1" style="font-size:0.6rem;"><?= isAdmin() ? 'Admin' : 'Stagiaire' ?></span>
+                </div>
+            </div>
+        </a>
     </div>
 
     <!-- Body -->
