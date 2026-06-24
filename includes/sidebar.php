@@ -7,6 +7,17 @@ $notifCountSidebar = isAdmin()
     ? (int) $pdo->query("SELECT COUNT(*) FROM notifications WHERE destinataire='all' AND lu=0")->fetchColumn()
     : 0;
 
+// Messages non lus
+$unreadMessages = (int) $pdo->query("
+    SELECT COUNT(*) FROM conversation_participants cp 
+    JOIN messages m ON m.conversation_id = cp.conversation_id 
+    LEFT JOIN message_reads mr ON mr.message_id = m.id AND mr.utilisateur_id = cp.utilisateur_id
+    WHERE cp.utilisateur_id = {$_SESSION['user_id']} 
+    AND m.sender_id != {$_SESSION['user_id']} 
+    AND mr.id IS NULL 
+    AND m.deleted_at IS NULL
+")->fetchColumn();
+
 // Vérifier la photo de profil
 $photoExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 $sidebarPhoto = null;
@@ -53,6 +64,12 @@ foreach ($photoExtensions as $ext) {
         <ul class="nav flex-column px-2">
             <li class="nav-item"><a class="nav-link <?= $currentFile==='index.php'?'active':'' ?>" href="<?= BASE_URL ?>/index.php"><i class="bi bi-grid-1x2-fill me-2"></i>Tableau de bord</a></li>
             <li class="nav-item"><a class="nav-link <?= $currentFile==='search.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/search.php"><i class="bi bi-search me-2"></i>Recherche</a></li>
+            <li class="nav-item">
+                <a class="nav-link <?= $currentFile==='chat.php'?'active':'' ?> d-flex justify-content-between align-items-center" href="<?= BASE_URL ?>/pages/chat.php">
+                    <span><i class="bi bi-chat-dots me-2"></i>Messages</span>
+                    <?php if ($unreadMessages > 0): ?><span class="badge bg-danger rounded-pill"><?= $unreadMessages ?></span><?php endif; ?>
+                </a>
+            </li>
             <li class="nav-item"><a class="nav-link <?= $currentFile==='profile.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/profile.php"><i class="bi bi-person-circle me-2"></i>Mon profil</a></li>
             <?php if (isAdmin()): ?>
             <li class="nav-item">
