@@ -7,7 +7,11 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "test": "jasmine"
+    "test": "jasmine",
+    "start": "node server.js",
+    "lint": "prettier --check \"**/*.{php,js,css,html}\"",
+    "lint:fix": "prettier --write \"**/*.{php,js,css,html}\"",
+    "format": "prettier --write \"**/*.{php,js,css,html}\""
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
@@ -16,5 +20,9 @@
     "datatables.net-bs5": "^1.13.4",
     "jquery": "^3.6.0",
     "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@prettier/plugin-php": "^0.22.0",
+    "prettier": "^3.3.0"
   }
 }
