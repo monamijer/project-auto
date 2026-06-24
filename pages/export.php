@@ -12,11 +12,11 @@ requirePermission('export_donnees');
 
 // ── Si un type est demandé, on génère et on télécharge le CSV ─────────────
 if (isset($_GET['type'])) {
-    $view = match($_GET['type']) {
-        'eleves'    => 'v_export_eleves',
+    $view = match ($_GET['type']) {
+        'eleves' => 'v_export_eleves',
         'paiements' => 'v_export_paiements',
-        'lecons'    => 'v_export_lecons',
-        default     => null,
+        'lecons' => 'v_export_lecons',
+        default => null,
     };
 
     if ($view) {
@@ -30,7 +30,7 @@ if (isset($_GET['type'])) {
         fputs($output, "\xEF\xBB\xBF"); // BOM UTF-8 pour Excel
 
         if (!empty($rows)) {
-            fputcsv($output, array_keys($rows[0]), ';');   // en-têtes
+            fputcsv($output, array_keys($rows[0]), ';'); // en-têtes
             foreach ($rows as $row) {
                 fputcsv($output, $row, ';');
             }

@@ -10,13 +10,13 @@ require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
 // ── Statistiques via la VIEW v_dashboard_stats ────────────────────────────
-$stats = $pdo->query("SELECT * FROM v_dashboard_stats")->fetch();
+$stats = $pdo->query('SELECT * FROM v_dashboard_stats')->fetch();
 
 // ── Derniers paiements via v_derniers_paiements ───────────────────────────
-$recentPayments = $pdo->query("SELECT * FROM v_derniers_paiements")->fetchAll();
+$recentPayments = $pdo->query('SELECT * FROM v_derniers_paiements')->fetchAll();
 
 // ── Prochaines leçons via v_prochaines_lecons ─────────────────────────────
-$upcomingLessons = $pdo->query("SELECT * FROM v_prochaines_lecons")->fetchAll();
+$upcomingLessons = $pdo->query('SELECT * FROM v_prochaines_lecons')->fetchAll();
 
 $pageTitle = 'Tableau de bord — Auto École Pro';
 include BASE_PATH . '/includes/header.php';

@@ -10,7 +10,7 @@ requireLogin();
 
 $studentId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-$stmt = $pdo->prepare("SELECT * FROM v_eleves WHERE id = ?");
+$stmt = $pdo->prepare('SELECT * FROM v_eleves WHERE id = ?');
 $stmt->execute([$studentId]);
 $student = $stmt->fetch();
 
@@ -19,11 +19,11 @@ if (!$student) {
     exit();
 }
 
-$stmt = $pdo->prepare("SELECT * FROM v_paiements WHERE utilisateur_id = ? ORDER BY date_paiement DESC");
+$stmt = $pdo->prepare('SELECT * FROM v_paiements WHERE utilisateur_id = ? ORDER BY date_paiement DESC');
 $stmt->execute([$studentId]);
 $payments = $stmt->fetchAll();
 
-$stmt = $pdo->prepare("SELECT * FROM v_lecons WHERE utilisateur_id = ? ORDER BY date_lecon DESC");
+$stmt = $pdo->prepare('SELECT * FROM v_lecons WHERE utilisateur_id = ? ORDER BY date_lecon DESC');
 $stmt->execute([$studentId]);
 $lessons = $stmt->fetchAll();
 
@@ -52,8 +52,12 @@ include BASE_PATH . '/includes/header.php';
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <div>
-        <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2"><li class="breadcrumb-item"><a href="<?= BASE_URL ?>/pages/students.php">Élèves</a></li><li class="breadcrumb-item active"><?= htmlspecialchars($student['nom_complet']) ?></li></ol></nav>
-        <h1 class="h3 mb-0"><i class="bi bi-person-badge me-2"></i><?= htmlspecialchars($student['nom_complet']) ?> <span class="badge bg-<?= $statutBadge ?> bg-opacity-10 text-<?= $statutBadge ?> ms-2"><?= $statut ?></span></h1>
+        <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2"><li class="breadcrumb-item"><a href="<?= BASE_URL ?>/pages/students.php">Élèves</a></li><li class="breadcrumb-item active"><?= htmlspecialchars(
+    $student['nom_complet']
+) ?></li></ol></nav>
+        <h1 class="h3 mb-0"><i class="bi bi-person-badge me-2"></i><?= htmlspecialchars(
+            $student['nom_complet']
+        ) ?> <span class="badge bg-<?= $statutBadge ?> bg-opacity-10 text-<?= $statutBadge ?> ms-2"><?= $statut ?></span></h1>
     </div>
     <div class="btn-group">
         <a href="<?= BASE_URL ?>/pages/students.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
@@ -117,7 +121,10 @@ include BASE_PATH . '/includes/header.php';
                 <strong><?= htmlspecialchars($student['formation_nom']) ?></strong>
                 <div class="row g-2 mt-2">
                     <div class="col-6"><div class="p-2 bg-light rounded-3"><small class="text-muted d-block">Durée</small><strong><?= $student['formation_duree_mois'] ?> mois</strong></div></div>
-                    <div class="col-6"><div class="p-2 bg-light rounded-3"><small class="text-muted d-block">Prix</small><strong><?= number_format($student['formation_prix'], 2) ?> $</strong></div></div>
+                    <div class="col-6"><div class="p-2 bg-light rounded-3"><small class="text-muted d-block">Prix</small><strong><?= number_format(
+                        $student['formation_prix'],
+                        2
+                    ) ?> $</strong></div></div>
                 </div>
             </div>
         </div>
@@ -145,14 +152,16 @@ include BASE_PATH . '/includes/header.php';
                 <?php else: ?>
                 <table class="table table-sm mb-0"><thead class="table-light"><tr><th class="ps-3">Date</th><th>Moniteur</th><th>Véhicule</th><th>Statut</th></tr></thead><tbody>
                 <?php foreach ($lessons as $l):
-                    $badge = match($l['statut']) {
+                    $badge = match ($l['statut']) {
                         'effectuée' => 'bg-success bg-opacity-10 text-success',
                         'annulée' => 'bg-danger bg-opacity-10 text-danger',
-                        default => 'bg-warning bg-opacity-10 text-warning'
-                    };
-                ?>
-                <tr><td class="ps-3"><small><?= date('d/m/Y H:i', strtotime($l['date_lecon'])) ?></small></td><td><?= htmlspecialchars($l['instructor_nom'] ?? 'N/A') ?></td><td><small><?= htmlspecialchars($l['vehicle_nom']) ?></small></td><td><span class="badge <?= $badge ?>"><?= htmlspecialchars($l['statut']) ?></span></td></tr>
-                <?php endforeach; ?>
+                        default => 'bg-warning bg-opacity-10 text-warning',
+                    }; ?>
+                <tr><td class="ps-3"><small><?= date('d/m/Y H:i', strtotime($l['date_lecon'])) ?></small></td><td><?= htmlspecialchars(
+    $l['instructor_nom'] ?? 'N/A'
+) ?></td><td><small><?= htmlspecialchars($l['vehicle_nom']) ?></small></td><td><span class="badge <?= $badge ?>"><?= htmlspecialchars($l['statut']) ?></span></td></tr>
+                <?php
+                endforeach; ?>
                 </tbody></table>
                 <?php endif; ?>
             </div>

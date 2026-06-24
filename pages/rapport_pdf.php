@@ -11,12 +11,12 @@ requirePermission('export_donnees');
 
 $periode = $_GET['periode'] ?? 'mois';
 
-$stats = $pdo->query("SELECT * FROM v_dashboard_stats")->fetch();
-$formationStats = $pdo->query("SELECT * FROM v_stats_formations")->fetchAll();
+$stats = $pdo->query('SELECT * FROM v_dashboard_stats')->fetch();
+$formationStats = $pdo->query('SELECT * FROM v_stats_formations')->fetchAll();
 
-$sqlPaiements = "SELECT * FROM v_export_paiements";
+$sqlPaiements = 'SELECT * FROM v_export_paiements';
 if ($periode === 'mois') {
-    $sqlPaiements .= " WHERE MONTH(Date_Paiement)=MONTH(CURDATE()) AND YEAR(Date_Paiement)=YEAR(CURDATE())";
+    $sqlPaiements .= ' WHERE MONTH(Date_Paiement)=MONTH(CURDATE()) AND YEAR(Date_Paiement)=YEAR(CURDATE())';
 }
 $paiements = $pdo->query($sqlPaiements)->fetchAll();
 $totalPeriode = array_sum(array_column($paiements, 'Montant'));
@@ -33,8 +33,8 @@ include BASE_PATH . '/includes/header.php';
     </div>
     <div class="d-flex gap-2">
         <div class="btn-group btn-group-sm">
-            <a href="?periode=mois" class="btn btn-outline-primary <?= $periode==='mois'?'active':'' ?>">Ce mois</a>
-            <a href="?periode=tout" class="btn btn-outline-primary <?= $periode==='tout'?'active':'' ?>">Tout</a>
+            <a href="?periode=mois" class="btn btn-outline-primary <?= $periode === 'mois' ? 'active' : '' ?>">Ce mois</a>
+            <a href="?periode=tout" class="btn btn-outline-primary <?= $periode === 'tout' ? 'active' : '' ?>">Tout</a>
         </div>
         <button onclick="window.print()" class="btn btn-primary btn-sm shadow-sm"><i class="bi bi-printer me-1"></i>Imprimer PDF</button>
         <a href="<?= BASE_URL ?>/index.php" class="btn btn-outline-secondary btn-sm">Retour</a>
@@ -54,7 +54,7 @@ include BASE_PATH . '/includes/header.php';
                 </div>
                 <div class="col-md-4 text-md-end mt-2 mt-md-0">
                     <h5 class="mb-1">Rapport d'activité</h5>
-                    <span class="badge <?= $periode==='mois' ? 'bg-primary' : 'bg-secondary' ?>"><?= $periode==='mois' ? 'Mois en cours' : 'Toutes périodes' ?></span>
+                    <span class="badge <?= $periode === 'mois' ? 'bg-primary' : 'bg-secondary' ?>"><?= $periode === 'mois' ? 'Mois en cours' : 'Toutes périodes' ?></span>
                 </div>
             </div>
         </div>
@@ -94,7 +94,7 @@ include BASE_PATH . '/includes/header.php';
             <div class="card shadow-sm border-0 text-center">
                 <div class="card-body py-3">
                     <i class="bi bi-cash-stack text-warning fs-3 mb-2 d-block"></i>
-                    <h3 class="mb-0 fw-bold"><?= number_format($stats['total_recettes'],2) ?> $</h3>
+                    <h3 class="mb-0 fw-bold"><?= number_format($stats['total_recettes'], 2) ?> $</h3>
                     <small class="text-muted">Recettes totales</small>
                 </div>
             </div>
@@ -122,7 +122,7 @@ include BASE_PATH . '/includes/header.php';
                     <tr>
                         <td class="ps-3"><span class="fw-medium"><?= htmlspecialchars($f['formation_nom']) ?></span></td>
                         <td class="text-center"><span class="badge bg-primary rounded-pill"><?= $f['total_eleves'] ?></span></td>
-                        <td class="text-end"><?= number_format($f['total_percu'],2) ?> $</td>
+                        <td class="text-end"><?= number_format($f['total_percu'], 2) ?> $</td>
                         <td class="text-center pe-3"><span class="badge bg-success rounded-pill"><?= $f['lecons_effectuees'] ?></span></td>
                     </tr>
                     <?php endforeach; ?>
@@ -135,7 +135,7 @@ include BASE_PATH . '/includes/header.php';
     <!-- Paiements -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Paiements</h5>
-        <span class="badge bg-primary rounded-pill">Total : <?= number_format($totalPeriode,2) ?> $</span>
+        <span class="badge bg-primary rounded-pill">Total : <?= number_format($totalPeriode, 2) ?> $</span>
     </div>
     <div class="card shadow-sm border-0">
         <div class="table-responsive">
@@ -158,7 +158,7 @@ include BASE_PATH . '/includes/header.php';
                         <td class="ps-3"><i class="bi bi-calendar3 text-muted me-2"></i><?= htmlspecialchars($p['Date_Paiement']) ?></td>
                         <td><span class="fw-medium"><?= htmlspecialchars($p['Eleve']) ?></span></td>
                         <td><?= htmlspecialchars($p['Formation']) ?></td>
-                        <td class="text-end"><strong><?= number_format($p['Montant'],2) ?> $</strong></td>
+                        <td class="text-end"><strong><?= number_format($p['Montant'], 2) ?> $</strong></td>
                         <td class="pe-3"><span class="badge bg-light text-dark"><?= htmlspecialchars($p['Mode_Paiement']) ?></span></td>
                     </tr>
                     <?php endforeach; ?>

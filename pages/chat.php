@@ -7,10 +7,13 @@ requireLogin();
 $userId = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 
-function getPhotoUrl($uid) {
+function getPhotoUrl($uid)
+{
     foreach (['jpg', 'jpeg', 'png', 'gif', 'webp'] as $ext) {
         $path = BASE_PATH . '/uploads/profiles/profile_' . $uid . '.' . $ext;
-        if (file_exists($path)) return BASE_URL . '/uploads/profiles/profile_' . $uid . '.' . $ext . '?v=' . filemtime($path);
+        if (file_exists($path)) {
+            return BASE_URL . '/uploads/profiles/profile_' . $uid . '.' . $ext . '?v=' . filemtime($path);
+        }
     }
     return null;
 }
@@ -134,13 +137,19 @@ include BASE_PATH . '/includes/header.php';
         <?php if (empty($convs)): ?>
         <div class="text-center py-5 text-muted"><i class="bi bi-chat-square-text fs-1 d-block mb-2 opacity-50"></i><small>Aucune conversation</small></div>
         <?php else: ?>
-        <?php foreach ($convs as $c): $cp = getPhotoUrl($c['correspondant_id']); ?>
+        <?php foreach ($convs as $c):
+            $cp = getPhotoUrl($c['correspondant_id']); ?>
         <div class="conversation-item" data-id="<?= $c['id'] ?>" onclick="openConv(<?= $c['id'] ?>, this)">
-            <div class="conversation-avatar"><?php if ($cp): ?><img src="<?= $cp ?>" alt=""><?php else: ?><div class="aph"><?= strtoupper(substr($c['correspondant_nom'] ?? '?', 0, 1)) ?></div><?php endif; ?></div>
-            <div class="conversation-info"><strong><?= htmlspecialchars($c['correspondant_nom'] ?? 'Inconnu') ?></strong><small><?= htmlspecialchars(mb_strimwidth($c['dernier_message'] ?? '', 0, 35, '...')) ?></small></div>
+            <div class="conversation-avatar"><?php if ($cp): ?><img src="<?= $cp ?>" alt=""><?php else: ?><div class="aph"><?= strtoupper(
+    substr($c['correspondant_nom'] ?? '?', 0, 1)
+) ?></div><?php endif; ?></div>
+            <div class="conversation-info"><strong><?= htmlspecialchars($c['correspondant_nom'] ?? 'Inconnu') ?></strong><small><?= htmlspecialchars(
+    mb_strimwidth($c['dernier_message'] ?? '', 0, 35, '...')
+) ?></small></div>
             <?php if ($c['non_lus'] > 0): ?><span class="unread-badge"><?= $c['non_lus'] ?></span><?php endif; ?>
         </div>
-        <?php endforeach; endif; ?>
+        <?php
+        endforeach;endif; ?>
     </div>
     <div class="chat-main" id="chatMain">
         <div class="d-flex align-items-center justify-content-center h-100 text-muted"><div class="text-center"><i class="bi bi-chat-dots display-1 d-block mb-3 opacity-25"></i><p>Sélectionnez une conversation</p></div></div>
@@ -173,7 +182,7 @@ include BASE_PATH . '/includes/header.php';
 <script>
 let cid=null,timer=null,tTimer=null,lastCount=0,selMsg=null,selContent=null,selSender=null,selPhoto=null,selRole=null,selectedFile=null;
 let ctx=document.getElementById('ctxMenu'),overlay=document.getElementById('ctxOverlay');
-const UID=<?=$userId?>,BASE='<?=BASE_URL?>';
+const UID=<?= $userId ?>,BASE='<?= BASE_URL ?>';
 
 document.getElementById('newChatForm').addEventListener('submit',async e=>{
     e.preventDefault();

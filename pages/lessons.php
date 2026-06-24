@@ -8,48 +8,52 @@ require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
-$message = ''; $error = '';
+$message = '';
+$error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add') {
     requirePermission('crud_lecons');
-    $msg = callProcedure("CALL sp_planifier_lecon(?,?,?,?,@msg)",
-        [(int)$_POST['student_id'], (int)$_POST['instructor_id'], (int)$_POST['vehicle_id'], $_POST['date_lecon']]);
-    if ($msg==='OK') { $message='Leçon planifiée !'; logActivity('AJOUT','lecons'); notifyAdmins('Nouvelle leçon planifiée','Une leçon a été planifiée le '.$_POST['date_lecon'],'/pages/lessons.php'); } else { $error=$msg; }
+    $msg = callProcedure('CALL sp_planifier_lecon(?,?,?,?,@msg)', [(int) $_POST['student_id'], (int) $_POST['instructor_id'], (int) $_POST['vehicle_id'], $_POST['date_lecon']]);
+    if ($msg === 'OK') {
+        $message = 'Leçon planifiée !';
+        logActivity('AJOUT', 'lecons');
+        notifyAdmins('Nouvelle leçon planifiée', 'Une leçon a été planifiée le ' . $_POST['date_lecon'], '/pages/lessons.php');
+    } else {
+        $error = $msg;
+    }
 }
 if (isset($_GET['complete'])) {
     requirePermission('crud_lecons');
-    callProcedure("CALL sp_completer_lecon(?,@msg)", [(int)$_GET['complete']]);
-    logActivity('MODIFICATION','lecons',(int)$_GET['complete'],'Marquée effectuée');
+    callProcedure('CALL sp_completer_lecon(?,@msg)', [(int) $_GET['complete']]);
+    logActivity('MODIFICATION', 'lecons', (int) $_GET['complete'], 'Marquée effectuée');
     $message = 'Leçon marquée effectuée !';
 }
 if (isset($_GET['cancel'])) {
     requirePermission('crud_lecons');
-    callProcedure("CALL sp_annuler_lecon(?,@msg)", [(int)$_GET['cancel']]);
-    logActivity('MODIFICATION','lecons',(int)$_GET['cancel'],'Annulée');
+    callProcedure('CALL sp_annuler_lecon(?,@msg)', [(int) $_GET['cancel']]);
+    logActivity('MODIFICATION', 'lecons', (int) $_GET['cancel'], 'Annulée');
     $message = 'Leçon annulée.';
 }
 if (isset($_GET['delete'])) {
     requirePermission('crud_lecons');
-    callProcedure("CALL sp_supprimer_lecon(?,@msg)", [(int)$_GET['delete']]);
-    logActivity('SUPPRESSION','lecons',(int)$_GET['delete']);
+    callProcedure('CALL sp_supprimer_lecon(?,@msg)', [(int) $_GET['delete']]);
+    logActivity('SUPPRESSION', 'lecons', (int) $_GET['delete']);
     $message = 'Leçon supprimée.';
 }
 
-$lessons     = $pdo->query("SELECT * FROM v_lecons ORDER BY date_lecon DESC")->fetchAll();
-$students    = $pdo->query("SELECT * FROM v_eleves_select")->fetchAll();
-$instructors = $pdo->query("SELECT * FROM v_moniteurs_select")->fetchAll();
-$vehicles    = $pdo->query("SELECT * FROM v_vehicules_disponibles")->fetchAll();
+$lessons = $pdo->query('SELECT * FROM v_lecons ORDER BY date_lecon DESC')->fetchAll();
+$students = $pdo->query('SELECT * FROM v_eleves_select')->fetchAll();
+$instructors = $pdo->query('SELECT * FROM v_moniteurs_select')->fetchAll();
+$vehicles = $pdo->query('SELECT * FROM v_vehicules_disponibles')->fetchAll();
 
 // Pagination
 $perPage = 10;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $search = trim($_GET['search'] ?? '');
 $filter = $_GET['filter'] ?? '';
 if ($search !== '') {
-    $lessons = array_filter($lessons, function($l) use ($search) {
-        return stripos($l['student_nom'], $search) !== false || 
-               stripos($l['instructor_nom'], $search) !== false ||
-               stripos($l['vehicle_nom'], $search) !== false;
+    $lessons = array_filter($lessons, function ($l) use ($search) {
+        return stripos($l['student_nom'], $search) !== false || stripos($l['instructor_nom'], $search) !== false || stripos($l['vehicle_nom'], $search) !== false;
     });
     $lessons = array_values($lessons);
 }
@@ -78,8 +82,12 @@ include BASE_PATH . '/includes/header.php';
     <?php endif; ?>
 </div>
 
-<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
-<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
+    $message
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars(
+    $error
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
 <?php if (!isAdmin()): ?><div class="alert alert-info d-flex align-items-center"><i class="bi bi-info-circle-fill me-2"></i>Mode lecture seule.</div><?php endif; ?>
 
 <!-- Search + Filter -->
@@ -95,9 +103,9 @@ include BASE_PATH . '/includes/header.php';
             <div class="col-md-3">
                 <select name="filter" class="form-select form-select-sm">
                     <option value="">Tous les statuts</option>
-                    <option value="programmée" <?= $filter==='programmée'?'selected':'' ?>>Programmées</option>
-                    <option value="effectuée" <?= $filter==='effectuée'?'selected':'' ?>>Effectuées</option>
-                    <option value="annulée" <?= $filter==='annulée'?'selected':'' ?>>Annulées</option>
+                    <option value="programmée" <?= $filter === 'programmée' ? 'selected' : '' ?>>Programmées</option>
+                    <option value="effectuée" <?= $filter === 'effectuée' ? 'selected' : '' ?>>Effectuées</option>
+                    <option value="annulée" <?= $filter === 'annulée' ? 'selected' : '' ?>>Annulées</option>
                 </select>
             </div>
             <div class="col-auto">
@@ -135,12 +143,11 @@ include BASE_PATH . '/includes/header.php';
                 <tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox display-4 d-block mb-2"></i>Aucune leçon trouvée</td></tr>
                 <?php else: ?>
                 <?php foreach ($lessonsPage as $row):
-                    $badge = match($row['statut']) {
+                    $badge = match ($row['statut']) {
                         'effectuée' => 'bg-success bg-opacity-10 text-success',
                         'annulée' => 'bg-danger bg-opacity-10 text-danger',
-                        default => 'bg-warning bg-opacity-10 text-warning'
-                    };
-                ?>
+                        default => 'bg-warning bg-opacity-10 text-warning',
+                    }; ?>
                 <tr>
                     <td class="ps-3"><span class="badge bg-secondary bg-opacity-10 text-secondary">#<?= $row['id'] ?></span></td>
                     <td><i class="bi bi-clock text-muted me-2"></i><?= date('d/m/Y H:i', strtotime($row['date_lecon'])) ?></td>
@@ -149,16 +156,21 @@ include BASE_PATH . '/includes/header.php';
                     <td><small><?= htmlspecialchars($row['vehicle_nom']) ?></small></td>
                     <td><span class="badge <?= $badge ?>"><?= htmlspecialchars($row['statut']) ?></span></td>
                     <td class="text-end pe-3">
-                        <?php if (hasPermission('crud_lecons') && $row['statut']==='programmée'): ?>
+                        <?php if (hasPermission('crud_lecons') && $row['statut'] === 'programmée'): ?>
                         <div class="btn-group btn-group-sm">
-                            <a href="?complete=<?= $row['id'] ?>&page=<?= $page ?>" class="btn btn-outline-success" onclick="return confirm('Marquer effectuée ?')" title="Effectuée"><i class="bi bi-check-lg"></i></a>
+                            <a href="?complete=<?= $row[
+                                'id'
+                            ] ?>&page=<?= $page ?>" class="btn btn-outline-success" onclick="return confirm('Marquer effectuée ?')" title="Effectuée"><i class="bi bi-check-lg"></i></a>
                             <a href="?cancel=<?= $row['id'] ?>&page=<?= $page ?>" class="btn btn-outline-warning" onclick="return confirm('Annuler ?')" title="Annuler"><i class="bi bi-x-lg"></i></a>
-                            <a href="?delete=<?= $row['id'] ?>&page=<?= $page ?>" class="btn btn-outline-danger" onclick="return confirm('Supprimer ?')" title="Supprimer"><i class="bi bi-trash"></i></a>
+                            <a href="?delete=<?= $row[
+                                'id'
+                            ] ?>&page=<?= $page ?>" class="btn btn-outline-danger" onclick="return confirm('Supprimer ?')" title="Supprimer"><i class="bi bi-trash"></i></a>
                         </div>
                         <?php endif; ?>
                     </td>
                 </tr>
-                <?php endforeach; ?>
+                <?php
+                endforeach; ?>
                 <?php endif; ?>
                 </tbody>
             </table>
@@ -167,11 +179,15 @@ include BASE_PATH . '/includes/header.php';
     <?php if ($totalPages > 1): ?>
     <div class="card-footer bg-white">
         <nav><ul class="pagination pagination-sm justify-content-center mb-0">
-            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page-1 ?>&search=<?= urlencode($search) ?>&filter=<?= urlencode($filter) ?>">Précédent</a></li>
+            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&filter=<?= urlencode(
+    $filter
+) ?>">Précédent</a></li>
             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
             <li class="page-item <?= $i === $page ? 'active' : '' ?>"><a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&filter=<?= urlencode($filter) ?>"><?= $i ?></a></li>
             <?php endfor; ?>
-            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page+1 ?>&search=<?= urlencode($search) ?>&filter=<?= urlencode($filter) ?>">Suivant</a></li>
+            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&filter=<?= urlencode(
+    $filter
+) ?>">Suivant</a></li>
         </ul></nav>
     </div>
     <?php endif; ?>
@@ -183,9 +199,18 @@ include BASE_PATH . '/includes/header.php';
         <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Planifier une leçon</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
             <input type="hidden" name="action" value="add">
-            <div class="mb-3"><label class="form-label">Élève</label><select name="student_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach ($students as $s): ?><option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['nom_complet']) ?></option><?php endforeach; ?></select></div>
-            <div class="mb-3"><label class="form-label">Moniteur</label><select name="instructor_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach ($instructors as $i): ?><option value="<?= $i['id'] ?>"><?= htmlspecialchars($i['nom_complet']) ?></option><?php endforeach; ?></select></div>
-            <div class="mb-3"><label class="form-label">Véhicule</label><select name="vehicle_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach ($vehicles as $v): ?><option value="<?= $v['id'] ?>"><?= htmlspecialchars($v['label']) ?></option><?php endforeach; ?></select></div>
+            <div class="mb-3"><label class="form-label">Élève</label><select name="student_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach (
+                $students
+                as $s
+            ): ?><option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['nom_complet']) ?></option><?php endforeach; ?></select></div>
+            <div class="mb-3"><label class="form-label">Moniteur</label><select name="instructor_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach (
+                $instructors
+                as $i
+            ): ?><option value="<?= $i['id'] ?>"><?= htmlspecialchars($i['nom_complet']) ?></option><?php endforeach; ?></select></div>
+            <div class="mb-3"><label class="form-label">Véhicule</label><select name="vehicle_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach (
+                $vehicles
+                as $v
+            ): ?><option value="<?= $v['id'] ?>"><?= htmlspecialchars($v['label']) ?></option><?php endforeach; ?></select></div>
             <div class="mb-3"><label class="form-label">Date et heure</label><input type="datetime-local" name="date_lecon" class="form-control" required></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Planifier</button></div>

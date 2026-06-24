@@ -11,73 +11,118 @@ require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 requirePermission('voir_parametres');
 
-$message = ''; $error = '';
+$message = '';
+$error = '';
 
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='add_compte') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_compte') {
     requirePermission('gestion_comptes');
     $hash = password_hash($_POST['mot_de_passe'], PASSWORD_BCRYPT);
-    $msg  = callProcedure("CALL sp_ajouter_compte(?,?,?,?,?,?,@msg)",
-        [trim($_POST['utilisateur']), $hash, $_POST['role'], $_POST['date_expiration'], $_POST['statut'], trim($_POST['commentaire']??'')]);
-    if ($msg==='OK') { $message='Compte créé !'; logActivity('AJOUT','comptes',null,trim($_POST['utilisateur'])); } else { $error=$msg; }
+    $msg = callProcedure('CALL sp_ajouter_compte(?,?,?,?,?,?,@msg)', [
+        trim($_POST['utilisateur']),
+        $hash,
+        $_POST['role'],
+        $_POST['date_expiration'],
+        $_POST['statut'],
+        trim($_POST['commentaire'] ?? ''),
+    ]);
+    if ($msg === 'OK') {
+        $message = 'Compte créé !';
+        logActivity('AJOUT', 'comptes', null, trim($_POST['utilisateur']));
+    } else {
+        $error = $msg;
+    }
 }
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='edit_compte') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit_compte') {
     requirePermission('gestion_comptes');
-    $msg = callProcedure("CALL sp_modifier_compte(?,?,?,?,?,@msg)",
-        [(int)$_POST['id'], $_POST['role'], $_POST['date_expiration'], $_POST['statut'], trim($_POST['commentaire']??'')]);
-    if ($msg==='OK') { $message='Compte mis à jour !'; logActivity('MODIFICATION','comptes',(int)$_POST['id']); } else { $error=$msg; }
+    $msg = callProcedure('CALL sp_modifier_compte(?,?,?,?,?,@msg)', [(int) $_POST['id'], $_POST['role'], $_POST['date_expiration'], $_POST['statut'], trim($_POST['commentaire'] ?? '')]);
+    if ($msg === 'OK') {
+        $message = 'Compte mis à jour !';
+        logActivity('MODIFICATION', 'comptes', (int) $_POST['id']);
+    } else {
+        $error = $msg;
+    }
 }
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='renouveler') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'renouveler') {
     requirePermission('gestion_comptes');
-    $msg = callProcedure("CALL sp_renouveler_compte(?,?,@msg)", [(int)$_POST['id'], $_POST['nouvelle_expiration']]);
-    if ($msg==='OK') { $message='Compte renouvelé et réactivé !'; logActivity('MODIFICATION','comptes',(int)$_POST['id'],'Renouvelé'); } else { $error=$msg; }
+    $msg = callProcedure('CALL sp_renouveler_compte(?,?,@msg)', [(int) $_POST['id'], $_POST['nouvelle_expiration']]);
+    if ($msg === 'OK') {
+        $message = 'Compte renouvelé et réactivé !';
+        logActivity('MODIFICATION', 'comptes', (int) $_POST['id'], 'Renouvelé');
+    } else {
+        $error = $msg;
+    }
 }
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='changer_mdp') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'changer_mdp') {
     requirePermission('gestion_comptes');
     if ($_POST['nouveau_mdp'] !== $_POST['confirmer_mdp']) {
         $error = 'Les mots de passe ne correspondent pas.';
     } else {
         $hash = password_hash($_POST['nouveau_mdp'], PASSWORD_BCRYPT);
-        $msg  = callProcedure("CALL sp_changer_mot_de_passe(?,?,@msg)", [(int)$_POST['id'], $hash]);
-        $msg==='OK' ? $message='Mot de passe changé !' : $error=$msg;
+        $msg = callProcedure('CALL sp_changer_mot_de_passe(?,?,@msg)', [(int) $_POST['id'], $hash]);
+        $msg === 'OK' ? ($message = 'Mot de passe changé !') : ($error = $msg);
     }
 }
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='bloquer') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'bloquer') {
     requirePermission('gestion_comptes');
-    if ((int)$_POST['id'] === (int)$_SESSION['user_id']) {
+    if ((int) $_POST['id'] === (int) $_SESSION['user_id']) {
         $error = 'Vous ne pouvez pas vous bloquer vous-même.';
     } else {
-        $msg = callProcedure("CALL sp_bloquer_utilisateur(?,?,@msg)", [(int)$_POST['id'], trim($_POST['raison'] ?: 'Comportement inapproprié')]);
-        if ($msg==='OK') { $message='Utilisateur bloqué.'; logActivity('BLOCAGE','comptes',(int)$_POST['id'],trim($_POST['raison'])); } else { $error=$msg; }
+        $msg = callProcedure('CALL sp_bloquer_utilisateur(?,?,@msg)', [(int) $_POST['id'], trim($_POST['raison'] ?: 'Comportement inapproprié')]);
+        if ($msg === 'OK') {
+            $message = 'Utilisateur bloqué.';
+            logActivity('BLOCAGE', 'comptes', (int) $_POST['id'], trim($_POST['raison']));
+        } else {
+            $error = $msg;
+        }
     }
 }
 if (isset($_GET['deverrouiller'])) {
     requirePermission('gestion_comptes');
-    $msg = callProcedure("CALL sp_deverrouiller_compte(?,@msg)", [(int)$_GET['deverrouiller']]);
-    if ($msg==='OK') { $message='Compte déverrouillé (tentatives réinitialisées).'; logActivity('DEBLOCAGE','comptes',(int)$_GET['deverrouiller'],'Déverrouillage auto-lock'); } else { $error=$msg; }
+    $msg = callProcedure('CALL sp_deverrouiller_compte(?,@msg)', [(int) $_GET['deverrouiller']]);
+    if ($msg === 'OK') {
+        $message = 'Compte déverrouillé (tentatives réinitialisées).';
+        logActivity('DEBLOCAGE', 'comptes', (int) $_GET['deverrouiller'], 'Déverrouillage auto-lock');
+    } else {
+        $error = $msg;
+    }
 }
 if (isset($_GET['debloquer'])) {
     requirePermission('gestion_comptes');
-    $msg = callProcedure("CALL sp_debloquer_utilisateur(?,@msg)", [(int)$_GET['debloquer']]);
-    if ($msg==='OK') { $message='Utilisateur débloqué.'; logActivity('DEBLOCAGE','comptes',(int)$_GET['debloquer']); } else { $error=$msg; }
+    $msg = callProcedure('CALL sp_debloquer_utilisateur(?,@msg)', [(int) $_GET['debloquer']]);
+    if ($msg === 'OK') {
+        $message = 'Utilisateur débloqué.';
+        logActivity('DEBLOCAGE', 'comptes', (int) $_GET['debloquer']);
+    } else {
+        $error = $msg;
+    }
 }
 if (isset($_GET['delete_compte'])) {
     requirePermission('gestion_comptes');
-    if ((int)$_GET['delete_compte'] === (int)$_SESSION['user_id']) {
+    if ((int) $_GET['delete_compte'] === (int) $_SESSION['user_id']) {
         $error = 'Vous ne pouvez pas supprimer votre propre compte.';
     } else {
-        $msg = callProcedure("CALL sp_supprimer_compte(?,@msg)", [(int)$_GET['delete_compte']]);
-        if ($msg==='OK') { $message='Compte supprimé.'; logActivity('SUPPRESSION','comptes',(int)$_GET['delete_compte']); } else { $error=$msg; }
+        $msg = callProcedure('CALL sp_supprimer_compte(?,@msg)', [(int) $_GET['delete_compte']]);
+        if ($msg === 'OK') {
+            $message = 'Compte supprimé.';
+            logActivity('SUPPRESSION', 'comptes', (int) $_GET['delete_compte']);
+        } else {
+            $error = $msg;
+        }
     }
 }
 
-$comptes = $pdo->query("
+$comptes = $pdo
+    ->query(
+        "
     SELECT v.*, e.tentatives_echouees, e.verrouille_jusqua
     FROM v_comptes v JOIN expirations_utilisateurs e ON e.id = v.id
     ORDER BY v.utilisateur
-")->fetchAll();
-$activites = $pdo->query("SELECT * FROM v_journal_activites")->fetchAll(); // Journal des actions CRUD
-$journal = $pdo->query("SELECT * FROM v_journal")->fetchAll();
-$sysInfo = $pdo->query("SELECT * FROM v_sys_info")->fetch();
+"
+    )
+    ->fetchAll();
+$activites = $pdo->query('SELECT * FROM v_journal_activites')->fetchAll(); // Journal des actions CRUD
+$journal = $pdo->query('SELECT * FROM v_journal')->fetchAll();
+$sysInfo = $pdo->query('SELECT * FROM v_sys_info')->fetch();
 
 $pageTitle = 'Paramètres — Auto École Pro';
 include BASE_PATH . '/includes/header.php';
@@ -91,8 +136,12 @@ include BASE_PATH . '/includes/header.php';
     <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">Zone Admin</span>
 </div>
 
-<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
-<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
+    $message
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars(
+    $error
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
 
 <!-- Comptes -->
 <div class="card shadow-sm border-0 mb-4">
@@ -108,20 +157,25 @@ include BASE_PATH . '/includes/header.php';
                 </thead>
                 <tbody>
                 <?php foreach ($comptes as $c):
-                    $badgeColor = match($c['statut_reel']) {
-                        'actif' => 'bg-success bg-opacity-10 text-success', 'expire_bientot' => 'bg-warning bg-opacity-10 text-warning',
-                        'expiré' => 'bg-danger bg-opacity-10 text-danger', 'suspendu' => 'bg-dark bg-opacity-10 text-dark', default => 'bg-secondary bg-opacity-10 text-secondary',
+
+                    $badgeColor = match ($c['statut_reel']) {
+                        'actif' => 'bg-success bg-opacity-10 text-success',
+                        'expire_bientot' => 'bg-warning bg-opacity-10 text-warning',
+                        'expiré' => 'bg-danger bg-opacity-10 text-danger',
+                        'suspendu' => 'bg-dark bg-opacity-10 text-dark',
+                        default => 'bg-secondary bg-opacity-10 text-secondary',
                     };
-                    $badgeLabel = match($c['statut_reel']) {
-                        'expire_bientot' => 'Expire bientôt', 'suspendu' => 'Bloqué',
+                    $badgeLabel = match ($c['statut_reel']) {
+                        'expire_bientot' => 'Expire bientôt',
+                        'suspendu' => 'Bloqué',
                         default => ucfirst($c['statut_reel']),
                     };
-                ?>
+                    ?>
                 <?php $estVerrouille = $c['verrouille_jusqua'] && strtotime($c['verrouille_jusqua']) > time(); ?>
                 <tr class="<?= $estVerrouille ? 'table-warning' : '' ?>">
                     <td class="ps-3">
                         <strong><?= htmlspecialchars($c['utilisateur']) ?></strong>
-                        <?= $c['id']==$_SESSION['user_id'] ? '<span class="badge bg-info bg-opacity-10 text-info ms-1">Vous</span>' : '' ?>
+                        <?= $c['id'] == $_SESSION['user_id'] ? '<span class="badge bg-info bg-opacity-10 text-info ms-1">Vous</span>' : '' ?>
                         <?php if ($estVerrouille): ?>
                         <span class="badge bg-dark ms-1" title="Verrouillage auto (tentatives échouées)"><i class="bi bi-lock-fill"></i> Verrouillé</span>
                         <?php endif; ?>
@@ -133,15 +187,19 @@ include BASE_PATH . '/includes/header.php';
                     <td class="text-end pe-3">
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editCompteModal-<?= $c['id'] ?>" title="Modifier"><i class="bi bi-pencil"></i></button>
-                            <?php if (in_array($c['statut_reel'], ['expiré','expire_bientot'])): ?>
-                            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renewModal-<?= $c['id'] ?>" title="Renouveler"><i class="bi bi-arrow-clockwise"></i></button>
+                            <?php if (in_array($c['statut_reel'], ['expiré', 'expire_bientot'])): ?>
+                            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renewModal-<?= $c[
+                                'id'
+                            ] ?>" title="Renouveler"><i class="bi bi-arrow-clockwise"></i></button>
                             <?php endif; ?>
                             <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#mdpModal-<?= $c['id'] ?>" title="Mot de passe"><i class="bi bi-key"></i></button>
                             <?php if ($estVerrouille): ?>
-                            <a href="?deverrouiller=<?= $c['id'] ?>" class="btn btn-outline-dark" title="Déverrouiller (tentatives échouées)" onclick="return confirm('Déverrouiller ce compte ?')"><i class="bi bi-unlock-fill"></i></a>
+                            <a href="?deverrouiller=<?= $c[
+                                'id'
+                            ] ?>" class="btn btn-outline-dark" title="Déverrouiller (tentatives échouées)" onclick="return confirm('Déverrouiller ce compte ?')"><i class="bi bi-unlock-fill"></i></a>
                             <?php endif; ?>
                             <?php if ($c['id'] != $_SESSION['user_id']): ?>
-                                <?php if ($c['statut']==='suspendu'): ?>
+                                <?php if ($c['statut'] === 'suspendu'): ?>
                                 <a href="?debloquer=<?= $c['id'] ?>" class="btn btn-outline-success" title="Débloquer" onclick="return confirm('Débloquer ?')"><i class="bi bi-unlock"></i></a>
                                 <?php else: ?>
                                 <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#blockModal-<?= $c['id'] ?>" title="Bloquer"><i class="bi bi-lock"></i></button>
@@ -154,29 +212,48 @@ include BASE_PATH . '/includes/header.php';
 
                 <!-- Modals -->
                 <div class="modal fade" id="editCompteModal-<?= $c['id'] ?>" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-                    <div class="modal-header"><h5 class="modal-title">Modifier : <?= htmlspecialchars($c['utilisateur']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title">Modifier : <?= htmlspecialchars(
+                        $c['utilisateur']
+                    ) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="edit_compte"><input type="hidden" name="id" value="<?= $c['id'] ?>">
-                        <div class="mb-3"><label class="form-label">Rôle</label><select name="role" class="form-select"><option value="admin" <?= $c['role']==='admin'?'selected':'' ?>>Administrateur</option><option value="stagiaire" <?= $c['role']==='stagiaire'?'selected':'' ?>>Stagiaire (lecture seule)</option></select></div>
-                        <div class="mb-3"><label class="form-label">Date d'expiration</label><input type="datetime-local" name="date_expiration" class="form-control" value="<?= str_replace(' ','T',$c['date_expiration']) ?>" required></div>
-                        <div class="mb-3"><label class="form-label">Statut manuel</label><select name="statut" class="form-select"><option value="actif" <?= $c['statut']==='actif'?'selected':'' ?>>Actif</option><option value="suspendu" <?= $c['statut']==='suspendu'?'selected':'' ?>>Suspendu</option></select></div>
-                        <div class="mb-3"><label class="form-label">Commentaire</label><textarea name="commentaire" class="form-control" rows="2"><?= htmlspecialchars($c['commentaire']??'') ?></textarea></div>
+                        <div class="mb-3"><label class="form-label">Rôle</label><select name="role" class="form-select"><option value="admin" <?= $c['role'] === 'admin'
+                            ? 'selected'
+                            : '' ?>>Administrateur</option><option value="stagiaire" <?= $c['role'] === 'stagiaire' ? 'selected' : '' ?>>Stagiaire (lecture seule)</option></select></div>
+                        <div class="mb-3"><label class="form-label">Date d'expiration</label><input type="datetime-local" name="date_expiration" class="form-control" value="<?= str_replace(
+                            ' ',
+                            'T',
+                            $c['date_expiration']
+                        ) ?>" required></div>
+                        <div class="mb-3"><label class="form-label">Statut manuel</label><select name="statut" class="form-select"><option value="actif" <?= $c['statut'] === 'actif'
+                            ? 'selected'
+                            : '' ?>>Actif</option><option value="suspendu" <?= $c['statut'] === 'suspendu' ? 'selected' : '' ?>>Suspendu</option></select></div>
+                        <div class="mb-3"><label class="form-label">Commentaire</label><textarea name="commentaire" class="form-control" rows="2"><?= htmlspecialchars(
+                            $c['commentaire'] ?? ''
+                        ) ?></textarea></div>
                     </div>
                     <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
                 </form></div></div></div>
 
                 <div class="modal fade" id="renewModal-<?= $c['id'] ?>" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-                    <div class="modal-header"><h5 class="modal-title">Renouveler : <?= htmlspecialchars($c['utilisateur']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title">Renouveler : <?= htmlspecialchars(
+                        $c['utilisateur']
+                    ) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="renouveler"><input type="hidden" name="id" value="<?= $c['id'] ?>">
                         <div class="alert alert-info py-2">Le compte sera remis à <strong>Actif</strong>.</div>
-                        <div class="mb-3"><label class="form-label">Nouvelle expiration</label><input type="datetime-local" name="nouvelle_expiration" class="form-control" value="<?= date('Y-m-d\TH:i', strtotime('+1 year')) ?>" required></div>
+                        <div class="mb-3"><label class="form-label">Nouvelle expiration</label><input type="datetime-local" name="nouvelle_expiration" class="form-control" value="<?= date(
+                            'Y-m-d\TH:i',
+                            strtotime('+1 year')
+                        ) ?>" required></div>
                     </div>
                     <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-success">Renouveler</button></div>
                 </form></div></div></div>
 
                 <div class="modal fade" id="mdpModal-<?= $c['id'] ?>" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-                    <div class="modal-header"><h5 class="modal-title">Mot de passe : <?= htmlspecialchars($c['utilisateur']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title">Mot de passe : <?= htmlspecialchars(
+                        $c['utilisateur']
+                    ) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="changer_mdp"><input type="hidden" name="id" value="<?= $c['id'] ?>">
                         <div class="mb-3"><label class="form-label">Nouveau mot de passe</label><input type="password" name="nouveau_mdp" class="form-control" minlength="6" required></div>
@@ -186,7 +263,9 @@ include BASE_PATH . '/includes/header.php';
                 </form></div></div></div>
 
                 <div class="modal fade" id="blockModal-<?= $c['id'] ?>" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-                    <div class="modal-header"><h5 class="modal-title text-danger">Bloquer : <?= htmlspecialchars($c['utilisateur']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title text-danger">Bloquer : <?= htmlspecialchars(
+                        $c['utilisateur']
+                    ) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="bloquer"><input type="hidden" name="id" value="<?= $c['id'] ?>">
                         <div class="alert alert-warning py-2">Cet utilisateur ne pourra plus se connecter.</div>
@@ -194,7 +273,8 @@ include BASE_PATH . '/includes/header.php';
                     </div>
                     <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-dark">Bloquer</button></div>
                 </form></div></div></div>
-                <?php endforeach; ?>
+                <?php
+                endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -213,7 +293,11 @@ include BASE_PATH . '/includes/header.php';
                 <tr>
                     <td class="ps-3"><?= htmlspecialchars($j['utilisateur']) ?></td>
                     <td><small><?= htmlspecialchars($j['heure_connexion']) ?></small></td>
-                    <td><span class="badge <?= $j['statut']==='AUTORISÉE'?'bg-success bg-opacity-10 text-success':($j['statut']==='REFUSÉE'?'bg-danger bg-opacity-10 text-danger':'bg-secondary bg-opacity-10 text-secondary') ?>"><?= htmlspecialchars($j['statut']) ?></span></td>
+                    <td><span class="badge <?= $j['statut'] === 'AUTORISÉE'
+                        ? 'bg-success bg-opacity-10 text-success'
+                        : ($j['statut'] === 'REFUSÉE'
+                            ? 'bg-danger bg-opacity-10 text-danger'
+                            : 'bg-secondary bg-opacity-10 text-secondary') ?>"><?= htmlspecialchars($j['statut']) ?></span></td>
                     <td><small><?= htmlspecialchars($j['message'] ?? '') ?></small></td>
                 </tr>
                 <?php endforeach; ?>
@@ -232,21 +316,25 @@ include BASE_PATH . '/includes/header.php';
                 <thead class="table-light"><tr><th class="ps-3">Date</th><th>Utilisateur</th><th>Action</th><th>Module</th><th>Détails</th></tr></thead>
                 <tbody>
                 <?php foreach ($activites as $a):
-                    $actBadge = match($a['action']) {
-                        'AJOUT' => 'bg-success bg-opacity-10 text-success', 'MODIFICATION' => 'bg-warning bg-opacity-10 text-warning',
-                        'SUPPRESSION' => 'bg-danger bg-opacity-10 text-danger', 'RESTAURATION' => 'bg-info bg-opacity-10 text-info',
-                        'BLOCAGE' => 'bg-dark bg-opacity-10 text-dark', 'DEBLOCAGE' => 'bg-secondary bg-opacity-10 text-secondary',
-                        'EXPORT' => 'bg-primary bg-opacity-10 text-primary', default => 'bg-secondary bg-opacity-10 text-secondary',
-                    };
-                ?>
+                    $actBadge = match ($a['action']) {
+                        'AJOUT' => 'bg-success bg-opacity-10 text-success',
+                        'MODIFICATION' => 'bg-warning bg-opacity-10 text-warning',
+                        'SUPPRESSION' => 'bg-danger bg-opacity-10 text-danger',
+                        'RESTAURATION' => 'bg-info bg-opacity-10 text-info',
+                        'BLOCAGE' => 'bg-dark bg-opacity-10 text-dark',
+                        'DEBLOCAGE' => 'bg-secondary bg-opacity-10 text-secondary',
+                        'EXPORT' => 'bg-primary bg-opacity-10 text-primary',
+                        default => 'bg-secondary bg-opacity-10 text-secondary',
+                    }; ?>
                 <tr>
                     <td class="ps-3"><small><?= htmlspecialchars($a['date_action']) ?></small></td>
                     <td><?= htmlspecialchars($a['utilisateur']) ?></td>
                     <td><span class="badge <?= $actBadge ?>"><?= htmlspecialchars($a['action']) ?></span></td>
-                    <td><?= htmlspecialchars($a['module']) ?> <?= $a['element_id'] ? '#'.$a['element_id'] : '' ?></td>
+                    <td><?= htmlspecialchars($a['module']) ?> <?= $a['element_id'] ? '#' . $a['element_id'] : '' ?></td>
                     <td><small class="text-muted"><?= htmlspecialchars($a['details'] ?? '') ?></small></td>
                 </tr>
-                <?php endforeach; ?>
+                <?php
+                endforeach; ?>
                 <?php if (empty($activites)): ?>
                 <tr><td colspan="5" class="text-center text-muted py-3">Aucune activité enregistrée.</td></tr>
                 <?php endif; ?>
@@ -262,8 +350,12 @@ include BASE_PATH . '/includes/header.php';
     <div class="card-body">
         <div class="row g-3 mb-3">
             <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Élèves</small><strong class="fs-5"><?= $sysInfo['nb_eleves'] ?></strong></div></div>
-            <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Moniteurs</small><strong class="fs-5"><?= $sysInfo['nb_moniteurs'] ?></strong></div></div>
-            <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Véhicules</small><strong class="fs-5"><?= $sysInfo['nb_vehicules'] ?></strong></div></div>
+            <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Moniteurs</small><strong class="fs-5"><?= $sysInfo[
+                'nb_moniteurs'
+            ] ?></strong></div></div>
+            <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Véhicules</small><strong class="fs-5"><?= $sysInfo[
+                'nb_vehicules'
+            ] ?></strong></div></div>
         </div>
         <div class="d-flex justify-content-between align-items-center">
             <small class="text-muted">PHP <?= phpversion() ?> · Serveur <?= date('Y-m-d H:i:s') ?></small>
@@ -280,7 +372,10 @@ include BASE_PATH . '/includes/header.php';
         <div class="mb-3"><label class="form-label">Identifiant</label><input type="text" name="utilisateur" class="form-control" required></div>
         <div class="mb-3"><label class="form-label">Mot de passe</label><input type="password" name="mot_de_passe" class="form-control" minlength="6" required></div>
         <div class="mb-3"><label class="form-label">Rôle</label><select name="role" class="form-select"><option value="stagiaire">Stagiaire</option><option value="admin">Administrateur</option></select></div>
-        <div class="mb-3"><label class="form-label">Expiration</label><input type="datetime-local" name="date_expiration" class="form-control" value="<?= date('Y-m-d\TH:i', strtotime('+1 year')) ?>" required></div>
+        <div class="mb-3"><label class="form-label">Expiration</label><input type="datetime-local" name="date_expiration" class="form-control" value="<?= date(
+            'Y-m-d\TH:i',
+            strtotime('+1 year')
+        ) ?>" required></div>
         <div class="mb-3"><label class="form-label">Statut</label><select name="statut" class="form-select"><option value="actif">Actif</option><option value="suspendu">Suspendu</option></select></div>
         <div class="mb-3"><label class="form-label">Commentaire</label><textarea name="commentaire" class="form-control" rows="2"></textarea></div>
     </div>

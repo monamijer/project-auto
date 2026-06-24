@@ -12,10 +12,11 @@ require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
-$message = ''; $error = '';
+$message = '';
+$error = '';
 
 // ── Téléverser photo de profil ─────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='upload_photo') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_photo') {
     if (!isset($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
         $error = 'Erreur lors du téléversement.';
     } else {
@@ -28,7 +29,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='upload_phot
             $error = 'Image trop volumineuse (max 2 Mo).';
         } else {
             $uploadDir = BASE_PATH . '/uploads/profiles';
-            if (!is_dir($uploadDir)) { mkdir($uploadDir, 0777, true); }
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
 
             $nomFichier = 'profile_' . $_SESSION['user_id'] . '.' . $ext;
             $destination = $uploadDir . '/' . $nomFichier;
@@ -58,8 +61,8 @@ if (isset($_GET['delete_photo'])) {
 }
 
 // ── Changer son propre mot de passe ────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='changer_mdp') {
-    $stmt = $pdo->prepare("SELECT mot_de_passe FROM expirations_utilisateurs WHERE id=?");
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'changer_mdp') {
+    $stmt = $pdo->prepare('SELECT mot_de_passe FROM expirations_utilisateurs WHERE id=?');
     $stmt->execute([$_SESSION['user_id']]);
     $hash = $stmt->fetchColumn();
 
@@ -69,24 +72,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='changer_mdp
         $error = 'Les nouveaux mots de passe ne correspondent pas.';
     } else {
         $newHash = password_hash($_POST['nouveau_mdp'], PASSWORD_BCRYPT);
-        $msg = callProcedure("CALL sp_changer_mot_de_passe(?,?,@msg)", [$_SESSION['user_id'], $newHash]);
-        $msg==='OK' ? $message='Mot de passe changé avec succès !' : $error=$msg;
+        $msg = callProcedure('CALL sp_changer_mot_de_passe(?,?,@msg)', [$_SESSION['user_id'], $newHash]);
+        $msg === 'OK' ? ($message = 'Mot de passe changé avec succès !') : ($error = $msg);
     }
 }
 
 // ── Modifier le commentaire/bio de son profil ──────────────────────────────
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='edit_profile') {
-    $msg = callProcedure("CALL sp_modifier_mon_profil(?,?,@msg)",
-        [$_SESSION['user_id'], trim($_POST['commentaire'] ?? '')]);
-    $msg==='OK' ? $message='Profil mis à jour !' : $error=$msg;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit_profile') {
+    $msg = callProcedure('CALL sp_modifier_mon_profil(?,?,@msg)', [$_SESSION['user_id'], trim($_POST['commentaire'] ?? '')]);
+    $msg === 'OK' ? ($message = 'Profil mis à jour !') : ($error = $msg);
 }
 
 // ── READ : mon compte + mon historique de connexion ────────────────────────
-$stmt = $pdo->prepare("SELECT * FROM v_comptes WHERE id = ?");
+$stmt = $pdo->prepare('SELECT * FROM v_comptes WHERE id = ?');
 $stmt->execute([$_SESSION['user_id']]);
 $monCompte = $stmt->fetch();
 
-$stmt = $pdo->prepare("SELECT * FROM journal_connexions WHERE utilisateur = ? ORDER BY heure_connexion DESC LIMIT 20");
+$stmt = $pdo->prepare('SELECT * FROM journal_connexions WHERE utilisateur = ? ORDER BY heure_connexion DESC LIMIT 20');
 $stmt->execute([$_SESSION['username']]);
 $monHistorique = $stmt->fetchAll();
 
@@ -112,8 +114,12 @@ include BASE_PATH . '/includes/header.php';
     </div>
 </div>
 
-<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
-<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
+    $message
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars(
+    $error
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
 
 <div class="row g-3">
     <!-- Photo + Infos -->
@@ -130,7 +136,7 @@ include BASE_PATH . '/includes/header.php';
                     <?php endif; ?>
                 </div>
                 <h5 class="mb-1"><?= htmlspecialchars($_SESSION['username']) ?></h5>
-                <span class="badge <?= isAdmin()?'bg-warning text-dark':'bg-secondary' ?> mb-3"><?= isAdmin()?'Administrateur':'Stagiaire' ?></span>
+                <span class="badge <?= isAdmin() ? 'bg-warning text-dark' : 'bg-secondary' ?> mb-3"><?= isAdmin() ? 'Administrateur' : 'Stagiaire' ?></span>
 
                 <div class="d-flex justify-content-center gap-2">
                     <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#photoModal">
@@ -198,7 +204,9 @@ include BASE_PATH . '/includes/header.php';
             <?php foreach ($monHistorique as $h): ?>
             <tr>
                 <td class="ps-3"><small><?= htmlspecialchars($h['heure_connexion']) ?></small></td>
-                <td><span class="badge <?= $h['statut']==='AUTORISÉE'?'bg-success bg-opacity-10 text-success':'bg-danger bg-opacity-10 text-danger' ?>"><?= htmlspecialchars($h['statut']) ?></span></td>
+                <td><span class="badge <?= $h['statut'] === 'AUTORISÉE' ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger' ?>"><?= htmlspecialchars(
+    $h['statut']
+) ?></span></td>
                 <td><small><?= htmlspecialchars($h['message'] ?? '') ?></small></td>
             </tr>
             <?php endforeach; ?>

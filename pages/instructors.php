@@ -8,39 +8,41 @@ require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
-$message = ''; $error = '';
+$message = '';
+$error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add') {
     requirePermission('crud_moniteurs');
-    $msg = callProcedure("CALL sp_ajouter_moniteur(?,?,?,?,?,@msg)",
-        [trim($_POST['nom']), trim($_POST['prenom']), trim($_POST['nationalite']),
-         trim($_POST['telephone']), (int)$_POST['experience']]);
-    $msg === 'OK' ? $message = 'Moniteur ajouté !' : $error = $msg;
+    $msg = callProcedure('CALL sp_ajouter_moniteur(?,?,?,?,?,@msg)', [trim($_POST['nom']), trim($_POST['prenom']), trim($_POST['nationalite']), trim($_POST['telephone']), (int) $_POST['experience']]);
+    $msg === 'OK' ? ($message = 'Moniteur ajouté !') : ($error = $msg);
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit') {
     requirePermission('crud_moniteurs');
-    $msg = callProcedure("CALL sp_modifier_moniteur(?,?,?,?,?,?,@msg)",
-        [(int)$_POST['id'], trim($_POST['nom']), trim($_POST['prenom']),
-         trim($_POST['nationalite']), trim($_POST['telephone']), (int)$_POST['experience']]);
-    $msg === 'OK' ? $message = 'Moniteur modifié !' : $error = $msg;
+    $msg = callProcedure('CALL sp_modifier_moniteur(?,?,?,?,?,?,@msg)', [
+        (int) $_POST['id'],
+        trim($_POST['nom']),
+        trim($_POST['prenom']),
+        trim($_POST['nationalite']),
+        trim($_POST['telephone']),
+        (int) $_POST['experience'],
+    ]);
+    $msg === 'OK' ? ($message = 'Moniteur modifié !') : ($error = $msg);
 }
 if (isset($_GET['delete'])) {
     requirePermission('crud_moniteurs');
-    $msg = callProcedure("CALL sp_supprimer_moniteur(?,@msg)", [(int)$_GET['delete']]);
-    $msg === 'OK' ? $message = 'Moniteur supprimé !' : $error = 'Impossible : leçons associées.';
+    $msg = callProcedure('CALL sp_supprimer_moniteur(?,@msg)', [(int) $_GET['delete']]);
+    $msg === 'OK' ? ($message = 'Moniteur supprimé !') : ($error = 'Impossible : leçons associées.');
 }
 
-$instructors = $pdo->query("SELECT * FROM v_moniteurs ORDER BY nom")->fetchAll();
+$instructors = $pdo->query('SELECT * FROM v_moniteurs ORDER BY nom')->fetchAll();
 
 // Pagination
 $perPage = 10;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $search = trim($_GET['search'] ?? '');
 if ($search !== '') {
-    $instructors = array_filter($instructors, function($i) use ($search) {
-        return stripos($i['nom_complet'], $search) !== false || 
-               stripos($i['nationalite'] ?? '', $search) !== false ||
-               stripos($i['telephone'] ?? '', $search) !== false;
+    $instructors = array_filter($instructors, function ($i) use ($search) {
+        return stripos($i['nom_complet'], $search) !== false || stripos($i['nationalite'] ?? '', $search) !== false || stripos($i['telephone'] ?? '', $search) !== false;
     });
     $instructors = array_values($instructors);
 }
@@ -66,10 +68,14 @@ include BASE_PATH . '/includes/header.php';
 </div>
 
 <?php if ($message): ?>
-<div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+<div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
+    $message
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 <?php endif; ?>
 <?php if ($error): ?>
-<div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+<div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars(
+    $error
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 <?php endif; ?>
 <?php if (!isAdmin()): ?>
 <div class="alert alert-info d-flex align-items-center"><i class="bi bi-info-circle-fill me-2"></i>Mode lecture seule.</div>
@@ -124,14 +130,14 @@ include BASE_PATH . '/includes/header.php';
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
-                                <span class="text-primary fw-bold small"><?= strtoupper(substr($row['prenom'],0,1).substr($row['nom'],0,1)) ?></span>
+                                <span class="text-primary fw-bold small"><?= strtoupper(substr($row['prenom'], 0, 1) . substr($row['nom'], 0, 1)) ?></span>
                             </div>
                             <span class="fw-medium"><?= htmlspecialchars($row['nom_complet']) ?></span>
                         </div>
                     </td>
                     <td><?= $row['nationalite'] ? htmlspecialchars($row['nationalite']) : '<span class="text-muted">—</span>' ?></td>
                     <td><?= $row['telephone'] ? htmlspecialchars($row['telephone']) : '<span class="text-muted">—</span>' ?></td>
-                    <td><span class="badge bg-light text-dark"><?= (int)$row['experience'] ?> an(s)</span></td>
+                    <td><span class="badge bg-light text-dark"><?= (int) $row['experience'] ?> an(s)</span></td>
                     <td class="text-end pe-3">
                         <div class="btn-group btn-group-sm">
                             <?php if (hasPermission('crud_moniteurs')): ?>
@@ -149,11 +155,21 @@ include BASE_PATH . '/includes/header.php';
                         <div class="modal-body">
                             <input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="<?= $row['id'] ?>">
                             <div class="row g-3">
-                                <div class="col-md-6"><label class="form-label">Prénom</label><input type="text" name="prenom" class="form-control" value="<?= htmlspecialchars($row['prenom']) ?>" required></div>
-                                <div class="col-md-6"><label class="form-label">Nom</label><input type="text" name="nom" class="form-control" value="<?= htmlspecialchars($row['nom']) ?>" required></div>
-                                <div class="col-md-6"><label class="form-label">Nationalité</label><input type="text" name="nationalite" class="form-control" value="<?= htmlspecialchars($row['nationalite'] ?? '') ?>"></div>
-                                <div class="col-md-6"><label class="form-label">Téléphone</label><input type="text" name="telephone" class="form-control" value="<?= htmlspecialchars($row['telephone'] ?? '') ?>"></div>
-                                <div class="col-md-6"><label class="form-label">Expérience (ans)</label><input type="number" name="experience" class="form-control" value="<?= (int)$row['experience'] ?>" min="0" required></div>
+                                <div class="col-md-6"><label class="form-label">Prénom</label><input type="text" name="prenom" class="form-control" value="<?= htmlspecialchars(
+                                    $row['prenom']
+                                ) ?>" required></div>
+                                <div class="col-md-6"><label class="form-label">Nom</label><input type="text" name="nom" class="form-control" value="<?= htmlspecialchars(
+                                    $row['nom']
+                                ) ?>" required></div>
+                                <div class="col-md-6"><label class="form-label">Nationalité</label><input type="text" name="nationalite" class="form-control" value="<?= htmlspecialchars(
+                                    $row['nationalite'] ?? ''
+                                ) ?>"></div>
+                                <div class="col-md-6"><label class="form-label">Téléphone</label><input type="text" name="telephone" class="form-control" value="<?= htmlspecialchars(
+                                    $row['telephone'] ?? ''
+                                ) ?>"></div>
+                                <div class="col-md-6"><label class="form-label">Expérience (ans)</label><input type="number" name="experience" class="form-control" value="<?= (int) $row[
+                                    'experience'
+                                ] ?>" min="0" required></div>
                             </div>
                         </div>
                         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
@@ -169,11 +185,11 @@ include BASE_PATH . '/includes/header.php';
     <?php if ($totalPages > 1): ?>
     <div class="card-footer bg-white">
         <nav><ul class="pagination pagination-sm justify-content-center mb-0">
-            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page-1 ?>&search=<?= urlencode($search) ?>">Précédent</a></li>
+            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Précédent</a></li>
             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
             <li class="page-item <?= $i === $page ? 'active' : '' ?>"><a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>"><?= $i ?></a></li>
             <?php endfor; ?>
-            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page+1 ?>&search=<?= urlencode($search) ?>">Suivant</a></li>
+            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Suivant</a></li>
         </ul></nav>
     </div>
     <?php endif; ?>

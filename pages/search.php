@@ -10,64 +10,68 @@ require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
 // ── Paramètres de recherche (GET) ─────────────────────────────────────────
-$q       = trim($_GET['q'] ?? '');
-$type    = $_GET['type'] ?? '';
-$pays    = $_GET['pays'] ?? '';
+$q = trim($_GET['q'] ?? '');
+$type = $_GET['type'] ?? '';
+$pays = $_GET['pays'] ?? '';
 
 // ── Liste des pays pour le filtre déroulant (via VIEW) ────────────────────
-$paysListe = $pdo->query("SELECT pays FROM v_pays_nationalites")->fetchAll(PDO::FETCH_COLUMN);
+$paysListe = $pdo->query('SELECT pays FROM v_pays_nationalites')->fetchAll(PDO::FETCH_COLUMN);
 
 // ── Si requête AJAX, renvoyer JSON ────────────────────────────────────────
 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
     header('Content-Type: application/json');
-    
-    $sql    = "SELECT * FROM v_recherche_globale WHERE 1=1";
+
+    $sql = 'SELECT * FROM v_recherche_globale WHERE 1=1';
     $params = [];
 
     if ($q !== '') {
-        $sql .= " AND (nom_complet LIKE ? COLLATE utf8mb4_unicode_ci OR detail1 LIKE ? COLLATE utf8mb4_unicode_ci OR detail2 LIKE ? COLLATE utf8mb4_unicode_ci)";
+        $sql .= ' AND (nom_complet LIKE ? COLLATE utf8mb4_unicode_ci OR detail1 LIKE ? COLLATE utf8mb4_unicode_ci OR detail2 LIKE ? COLLATE utf8mb4_unicode_ci)';
         $like = "%$q%";
-        $params[] = $like; $params[] = $like; $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
     }
     if ($type !== '') {
-        $sql .= " AND type = ? COLLATE utf8mb4_unicode_ci";
+        $sql .= ' AND type = ? COLLATE utf8mb4_unicode_ci';
         $params[] = $type;
     }
     if ($pays !== '') {
-        $sql .= " AND pays = ? COLLATE utf8mb4_unicode_ci";
+        $sql .= ' AND pays = ? COLLATE utf8mb4_unicode_ci';
         $params[] = $pays;
     }
-    $sql .= " ORDER BY nom_complet LIMIT 50";
+    $sql .= ' ORDER BY nom_complet LIMIT 50';
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $results = $stmt->fetchAll();
-    
+
     echo json_encode(['results' => $results, 'count' => count($results)]);
-    exit;
+    exit();
 }
 
 // ── Résultats initiaux (si recherche normale) ─────────────────────────────
 $results = [];
-$hasSearched = ($q !== '' || $type !== '' || $pays !== '');
+$hasSearched = $q !== '' || $type !== '' || $pays !== '';
 if ($hasSearched) {
-    $sql    = "SELECT * FROM v_recherche_globale WHERE 1=1";
+    $sql = 'SELECT * FROM v_recherche_globale WHERE 1=1';
     $params = [];
 
     if ($q !== '') {
-        $sql .= " AND (nom_complet LIKE ? COLLATE utf8mb4_unicode_ci OR detail1 LIKE ? COLLATE utf8mb4_unicode_ci OR detail2 LIKE ? COLLATE utf8mb4_unicode_ci)";
+        $sql .= ' AND (nom_complet LIKE ? COLLATE utf8mb4_unicode_ci OR detail1 LIKE ? COLLATE utf8mb4_unicode_ci OR detail2 LIKE ? COLLATE utf8mb4_unicode_ci)';
         $like = "%$q%";
-        $params[] = $like; $params[] = $like; $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
     }
     if ($type !== '') {
-        $sql .= " AND type = ? COLLATE utf8mb4_unicode_ci";
+        $sql .= ' AND type = ? COLLATE utf8mb4_unicode_ci';
         $params[] = $type;
     }
     if ($pays !== '') {
-        $sql .= " AND pays = ? COLLATE utf8mb4_unicode_ci";
+        $sql .= ' AND pays = ? COLLATE utf8mb4_unicode_ci';
         $params[] = $pays;
     }
-    $sql .= " ORDER BY nom_complet LIMIT 50";
+    $sql .= ' ORDER BY nom_complet LIMIT 50';
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -127,9 +131,9 @@ include BASE_PATH . '/includes/header.php';
                 </label>
                 <select id="typeFilter" name="type" class="form-select">
                     <option value="">📋 Tous les types</option>
-                    <option value="eleve" <?= $type==='eleve'?'selected':'' ?>>👤 Élèves</option>
-                    <option value="moniteur" <?= $type==='moniteur'?'selected':'' ?>>👨‍🏫 Moniteurs</option>
-                    <option value="vehicule" <?= $type==='vehicule'?'selected':'' ?>>🚗 Véhicules</option>
+                    <option value="eleve" <?= $type === 'eleve' ? 'selected' : '' ?>>👤 Élèves</option>
+                    <option value="moniteur" <?= $type === 'moniteur' ? 'selected' : '' ?>>👨‍🏫 Moniteurs</option>
+                    <option value="vehicule" <?= $type === 'vehicule' ? 'selected' : '' ?>>🚗 Véhicules</option>
                 </select>
             </div>
             
@@ -140,7 +144,7 @@ include BASE_PATH . '/includes/header.php';
                 <select id="paysFilter" name="pays" class="form-select">
                     <option value="">🌍 Tous les pays</option>
                     <?php foreach ($paysListe as $p): ?>
-                    <option value="<?= htmlspecialchars($p) ?>" <?= $pays===$p?'selected':'' ?>>
+                    <option value="<?= htmlspecialchars($p) ?>" <?= $pays === $p ? 'selected' : '' ?>>
                         <?= htmlspecialchars($p) ?>
                     </option>
                     <?php endforeach; ?>
@@ -234,13 +238,30 @@ include BASE_PATH . '/includes/header.php';
                 </thead>
                 <tbody>
                 <?php foreach ($results as $r):
-                    $icon  = match($r['type']) { 'eleve'=>'bi-person-fill', 'moniteur'=>'bi-person-badge-fill', 'vehicule'=>'bi-car-front-fill', default=>'bi-question-circle-fill' };
-                    $badgeClass = match($r['type']) { 'eleve'=>'bg-primary bg-opacity-10 text-primary', 'moniteur'=>'bg-info bg-opacity-10 text-info', 'vehicule'=>'bg-secondary bg-opacity-10 text-secondary', default=>'bg-dark bg-opacity-10 text-dark' };
-                    $link  = match($r['type']) { 
-                        'eleve' => BASE_URL.'/pages/student_profile.php?id='.$r['id'],
-                        default => BASE_URL.'/pages/'.match($r['type']){'moniteur'=>'instructors','vehicule'=>'vehicles'}.'.php'
+
+                    $icon = match ($r['type']) {
+                        'eleve' => 'bi-person-fill',
+                        'moniteur' => 'bi-person-badge-fill',
+                        'vehicule' => 'bi-car-front-fill',
+                        default => 'bi-question-circle-fill',
                     };
-                ?>
+                    $badgeClass = match ($r['type']) {
+                        'eleve' => 'bg-primary bg-opacity-10 text-primary',
+                        'moniteur' => 'bg-info bg-opacity-10 text-info',
+                        'vehicule' => 'bg-secondary bg-opacity-10 text-secondary',
+                        default => 'bg-dark bg-opacity-10 text-dark',
+                    };
+                    $link = match ($r['type']) {
+                        'eleve' => BASE_URL . '/pages/student_profile.php?id=' . $r['id'],
+                        default => BASE_URL .
+                            '/pages/' .
+                            match ($r['type']) {
+                                'moniteur' => 'instructors',
+                                'vehicule' => 'vehicles',
+                            } .
+                            '.php',
+                    };
+                    ?>
                 <tr>
                     <td class="ps-3">
                         <span class="badge <?= $badgeClass ?> px-3 py-2">
@@ -264,7 +285,8 @@ include BASE_PATH . '/includes/header.php';
                         </a>
                     </td>
                 </tr>
-                <?php endforeach; ?>
+                <?php
+                endforeach; ?>
                 </tbody>
             </table>
         </div>

@@ -8,12 +8,12 @@ require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
-$eligible  = $pdo->query("SELECT * FROM v_examens_eligibles ORDER BY lecons_effectuees DESC")->fetchAll();
-$examStats = $pdo->query("SELECT * FROM v_stats_examens")->fetchAll();
+$eligible = $pdo->query('SELECT * FROM v_examens_eligibles ORDER BY lecons_effectuees DESC')->fetchAll();
+$examStats = $pdo->query('SELECT * FROM v_stats_examens')->fetchAll();
 
 // Pagination
 $perPage = 10;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $totalEligible = count($eligible);
 $totalPages = ceil($totalEligible / $perPage);
 $offset = ($page - 1) * $perPage;
@@ -33,8 +33,7 @@ include BASE_PATH . '/includes/header.php';
 <!-- Stats Cards -->
 <div class="row g-3 mb-4">
     <?php foreach ($examStats as $stat):
-        $pct = $stat['total_eleves'] > 0 ? round(($stat['eligibles'] / $stat['total_eleves']) * 100) : 0;
-    ?>
+        $pct = $stat['total_eleves'] > 0 ? round(($stat['eligibles'] / $stat['total_eleves']) * 100) : 0; ?>
     <div class="col-lg-4 col-md-6">
         <div class="card shadow-sm border-0">
             <div class="card-body">
@@ -50,7 +49,8 @@ include BASE_PATH . '/includes/header.php';
             </div>
         </div>
     </div>
-    <?php endforeach; ?>
+    <?php
+    endforeach; ?>
 </div>
 
 <!-- Table -->
@@ -109,7 +109,7 @@ include BASE_PATH . '/includes/header.php';
         <nav>
             <ul class="pagination pagination-sm justify-content-center mb-0">
                 <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                    <a class="page-link" href="?page=<?= $page-1 ?>">Précédent</a>
+                    <a class="page-link" href="?page=<?= $page - 1 ?>">Précédent</a>
                 </li>
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                 <li class="page-item <?= $i === $page ? 'active' : '' ?>">
@@ -117,7 +117,7 @@ include BASE_PATH . '/includes/header.php';
                 </li>
                 <?php endfor; ?>
                 <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-                    <a class="page-link" href="?page=<?= $page+1 ?>">Suivant</a>
+                    <a class="page-link" href="?page=<?= $page + 1 ?>">Suivant</a>
                 </li>
             </ul>
         </nav>

@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     // ── 1. Vérifier le verrouillage (tentatives échouées) ─────────────────
-    $lockCheck = $pdo->prepare("SELECT tentatives_echouees, verrouille_jusqua FROM expirations_utilisateurs WHERE utilisateur = ?");
+    $lockCheck = $pdo->prepare('SELECT tentatives_echouees, verrouille_jusqua FROM expirations_utilisateurs WHERE utilisateur = ?');
     $lockCheck->execute([$username]);
     $lockRow = $lockCheck->fetch();
 
@@ -31,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Compte verrouillé suite à trop de tentatives échouées. Réessayez dans $minutes minute(s).";
     } else {
         try {
-            $pdo->prepare("CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)")->execute([$username]);
-            $row = $pdo->query("SELECT @p_id AS id, @p_role AS role, @p_hash AS hash, @p_statut AS statut")->fetch();
+            $pdo->prepare('CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)')->execute([$username]);
+            $row = $pdo->query('SELECT @p_id AS id, @p_role AS role, @p_hash AS hash, @p_statut AS statut')->fetch();
         } catch (PDOException $e) {
             $error = 'Erreur système.';
             $row = null;
@@ -40,18 +40,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($row && $row['id'] && $row['statut'] === 'actif') {
             if (password_verify($password, $row['hash'])) {
-                callProcedure("CALL sp_reset_tentatives(?,@msg)", [$username]);
+                callProcedure('CALL sp_reset_tentatives(?,@msg)', [$username]);
 
-                $_SESSION['user_id']       = $row['id'];
-                $_SESSION['username']      = $username;
-                $_SESSION['role']          = $row['role'];
+                $_SESSION['user_id'] = $row['id'];
+                $_SESSION['username'] = $username;
+                $_SESSION['role'] = $row['role'];
                 $_SESSION['last_activity'] = time();
 
-                callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'AUTORISÉE', 'Connexion réussie']);
+                callProcedure('CALL sp_journaliser(?,?,?,@msg)', [$username, 'AUTORISÉE', 'Connexion réussie']);
                 header('Location: ' . BASE_URL . '/index.php');
                 exit();
             } else {
-                callProcedure("CALL sp_incrementer_tentative(?,@msg)", [$username]);
+                callProcedure('CALL sp_incrementer_tentative(?,@msg)', [$username]);
                 $error = 'Mot de passe incorrect.';
             }
         } elseif ($row && $row['statut'] !== 'actif') {
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = 'Identifiant introuvable.';
         }
-        callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'REFUSÉE', $error]);
+        callProcedure('CALL sp_journaliser(?,?,?,@msg)', [$username, 'REFUSÉE', $error]);
     }
 }
 ?>

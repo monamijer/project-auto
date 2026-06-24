@@ -10,33 +10,34 @@ require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 requirePermission('gestion_comptes');
 
-$message = ''; $error = '';
+$message = '';
+$error = '';
 
 if (isset($_GET['restaurer']) && isset($_GET['type'])) {
     $id = (int) $_GET['restaurer'];
-    $msg = match($_GET['type']) {
-        'eleve'    => callProcedure("CALL sp_restaurer_eleve(?,@msg)", [$id]),
-        'moniteur' => callProcedure("CALL sp_restaurer_moniteur(?,@msg)", [$id]),
-        'vehicule' => callProcedure("CALL sp_restaurer_vehicule(?,@msg)", [$id]),
-        default    => 'Type invalide',
+    $msg = match ($_GET['type']) {
+        'eleve' => callProcedure('CALL sp_restaurer_eleve(?,@msg)', [$id]),
+        'moniteur' => callProcedure('CALL sp_restaurer_moniteur(?,@msg)', [$id]),
+        'vehicule' => callProcedure('CALL sp_restaurer_vehicule(?,@msg)', [$id]),
+        default => 'Type invalide',
     };
-    $msg === 'OK' ? $message = 'Élément restauré avec succès !' : $error = $msg;
+    $msg === 'OK' ? ($message = 'Élément restauré avec succès !') : ($error = $msg);
 }
 
 if (isset($_GET['purger']) && isset($_GET['type'])) {
     $id = (int) $_GET['purger'];
-    $msg = match($_GET['type']) {
-        'eleve'    => callProcedure("CALL sp_supprimer_eleve_definitif(?,@msg)", [$id]),
-        'moniteur' => callProcedure("CALL sp_supprimer_moniteur_definitif(?,@msg)", [$id]),
-        'vehicule' => callProcedure("CALL sp_supprimer_vehicule_definitif(?,@msg)", [$id]),
-        default    => 'Type invalide',
+    $msg = match ($_GET['type']) {
+        'eleve' => callProcedure('CALL sp_supprimer_eleve_definitif(?,@msg)', [$id]),
+        'moniteur' => callProcedure('CALL sp_supprimer_moniteur_definitif(?,@msg)', [$id]),
+        'vehicule' => callProcedure('CALL sp_supprimer_vehicule_definitif(?,@msg)', [$id]),
+        default => 'Type invalide',
     };
-    $msg === 'OK' ? $message = 'Supprimé définitivement.' : $error = 'Impossible : données liées.';
+    $msg === 'OK' ? ($message = 'Supprimé définitivement.') : ($error = 'Impossible : données liées.');
 }
 
-$eleves    = $pdo->query("SELECT * FROM v_corbeille_eleves")->fetchAll();
-$moniteurs = $pdo->query("SELECT * FROM v_corbeille_moniteurs")->fetchAll();
-$vehicules = $pdo->query("SELECT * FROM v_corbeille_vehicules")->fetchAll();
+$eleves = $pdo->query('SELECT * FROM v_corbeille_eleves')->fetchAll();
+$moniteurs = $pdo->query('SELECT * FROM v_corbeille_moniteurs')->fetchAll();
+$vehicules = $pdo->query('SELECT * FROM v_corbeille_vehicules')->fetchAll();
 
 $totalElements = count($eleves) + count($moniteurs) + count($vehicules);
 $activeTab = $_GET['tab'] ?? 'eleves';
@@ -55,8 +56,12 @@ include BASE_PATH . '/includes/header.php';
     </span>
 </div>
 
-<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
-<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
+    $message
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars(
+    $error
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
 
 <div class="alert alert-warning d-flex align-items-center py-2 mb-3 small">
     <i class="bi bi-exclamation-triangle me-2"></i>
@@ -66,17 +71,17 @@ include BASE_PATH . '/includes/header.php';
 <!-- Tabs -->
 <ul class="nav nav-tabs mb-3" role="tablist">
     <li class="nav-item">
-        <a class="nav-link <?= $activeTab==='eleves'?'active':'' ?>" data-bs-toggle="tab" href="#tab-eleves">
+        <a class="nav-link <?= $activeTab === 'eleves' ? 'active' : '' ?>" data-bs-toggle="tab" href="#tab-eleves">
             <i class="bi bi-people me-1"></i>Élèves <span class="badge bg-secondary ms-1"><?= count($eleves) ?></span>
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= $activeTab==='moniteurs'?'active':'' ?>" data-bs-toggle="tab" href="#tab-moniteurs">
+        <a class="nav-link <?= $activeTab === 'moniteurs' ? 'active' : '' ?>" data-bs-toggle="tab" href="#tab-moniteurs">
             <i class="bi bi-person-badge me-1"></i>Moniteurs <span class="badge bg-secondary ms-1"><?= count($moniteurs) ?></span>
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= $activeTab==='vehicules'?'active':'' ?>" data-bs-toggle="tab" href="#tab-vehicules">
+        <a class="nav-link <?= $activeTab === 'vehicules' ? 'active' : '' ?>" data-bs-toggle="tab" href="#tab-vehicules">
             <i class="bi bi-car-front me-1"></i>Véhicules <span class="badge bg-secondary ms-1"><?= count($vehicules) ?></span>
         </a>
     </li>
@@ -84,7 +89,7 @@ include BASE_PATH . '/includes/header.php';
 
 <div class="tab-content">
     <!-- Élèves -->
-    <div class="tab-pane fade <?= $activeTab==='eleves'?'show active':'' ?>" id="tab-eleves">
+    <div class="tab-pane fade <?= $activeTab === 'eleves' ? 'show active' : '' ?>" id="tab-eleves">
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
                 <?php if (empty($eleves)): ?>
@@ -103,7 +108,9 @@ include BASE_PATH . '/includes/header.php';
                             <td><small><?= htmlspecialchars($e['deleted_by'] ?? '—') ?></small></td>
                             <td class="text-end pe-3">
                                 <a href="?restaurer=<?= $e['id'] ?>&type=eleve" class="btn btn-sm btn-outline-success" title="Restaurer"><i class="bi bi-arrow-counterclockwise"></i></a>
-                                <a href="?purger=<?= $e['id'] ?>&type=eleve" class="btn btn-sm btn-outline-danger" title="Supprimer définitivement" onclick="return confirm('⚠️ Suppression DÉFINITIVE. Continuer ?')"><i class="bi bi-x-octagon"></i></a>
+                                <a href="?purger=<?= $e[
+                                    'id'
+                                ] ?>&type=eleve" class="btn btn-sm btn-outline-danger" title="Supprimer définitivement" onclick="return confirm('⚠️ Suppression DÉFINITIVE. Continuer ?')"><i class="bi bi-x-octagon"></i></a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -116,7 +123,7 @@ include BASE_PATH . '/includes/header.php';
     </div>
 
     <!-- Moniteurs -->
-    <div class="tab-pane fade <?= $activeTab==='moniteurs'?'show active':'' ?>" id="tab-moniteurs">
+    <div class="tab-pane fade <?= $activeTab === 'moniteurs' ? 'show active' : '' ?>" id="tab-moniteurs">
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
                 <?php if (empty($moniteurs)): ?>
@@ -134,7 +141,9 @@ include BASE_PATH . '/includes/header.php';
                             <td><small><?= htmlspecialchars($m['deleted_by'] ?? '—') ?></small></td>
                             <td class="text-end pe-3">
                                 <a href="?restaurer=<?= $m['id'] ?>&type=moniteur" class="btn btn-sm btn-outline-success" title="Restaurer"><i class="bi bi-arrow-counterclockwise"></i></a>
-                                <a href="?purger=<?= $m['id'] ?>&type=moniteur" class="btn btn-sm btn-outline-danger" title="Supprimer définitivement" onclick="return confirm('⚠️ Suppression DÉFINITIVE. Continuer ?')"><i class="bi bi-x-octagon"></i></a>
+                                <a href="?purger=<?= $m[
+                                    'id'
+                                ] ?>&type=moniteur" class="btn btn-sm btn-outline-danger" title="Supprimer définitivement" onclick="return confirm('⚠️ Suppression DÉFINITIVE. Continuer ?')"><i class="bi bi-x-octagon"></i></a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -147,7 +156,7 @@ include BASE_PATH . '/includes/header.php';
     </div>
 
     <!-- Véhicules -->
-    <div class="tab-pane fade <?= $activeTab==='vehicules'?'show active':'' ?>" id="tab-vehicules">
+    <div class="tab-pane fade <?= $activeTab === 'vehicules' ? 'show active' : '' ?>" id="tab-vehicules">
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
                 <?php if (empty($vehicules)): ?>
@@ -165,7 +174,9 @@ include BASE_PATH . '/includes/header.php';
                             <td><small><?= htmlspecialchars($v['deleted_by'] ?? '—') ?></small></td>
                             <td class="text-end pe-3">
                                 <a href="?restaurer=<?= $v['id'] ?>&type=vehicule" class="btn btn-sm btn-outline-success" title="Restaurer"><i class="bi bi-arrow-counterclockwise"></i></a>
-                                <a href="?purger=<?= $v['id'] ?>&type=vehicule" class="btn btn-sm btn-outline-danger" title="Supprimer définitivement" onclick="return confirm('⚠️ Suppression DÉFINITIVE. Continuer ?')"><i class="bi bi-x-octagon"></i></a>
+                                <a href="?purger=<?= $v[
+                                    'id'
+                                ] ?>&type=vehicule" class="btn btn-sm btn-outline-danger" title="Supprimer définitivement" onclick="return confirm('⚠️ Suppression DÉFINITIVE. Continuer ?')"><i class="bi bi-x-octagon"></i></a>
                             </td>
                         </tr>
                         <?php endforeach; ?>

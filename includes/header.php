@@ -4,7 +4,9 @@
  */
 require_once BASE_PATH . '/includes/auth.php';
 
-if (empty($pageTitle)) { $pageTitle = 'Auto École Pro'; }
+if (empty($pageTitle)) {
+    $pageTitle = 'Auto École Pro';
+}
 
 // Notifications non lues (admins)
 $notifCount = 0;

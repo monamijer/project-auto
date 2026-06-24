@@ -9,17 +9,18 @@ require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 requirePermission('gestion_documents');
 
-$message = ''; $error = '';
+$message = '';
+$error = '';
 
 // ── TÉLÉVERSER ────────────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='upload') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload') {
     $studentId = (int) $_POST['utilisateur_id'];
-    $type      = trim($_POST['type_document']);
+    $type = trim($_POST['type_document']);
 
     if (!isset($_FILES['fichier']) || $_FILES['fichier']['error'] !== UPLOAD_ERR_OK) {
         $error = 'Erreur lors du téléversement.';
     } else {
-        $allowedExt = ['pdf','jpg','jpeg','png','docx'];
+        $allowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'docx'];
         $ext = strtolower(pathinfo($_FILES['fichier']['name'], PATHINFO_EXTENSION));
 
         if (!in_array($ext, $allowedExt)) {
@@ -28,10 +29,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='upload') {
             $error = 'Fichier trop volumineux (max 5 Mo).';
         } else {
             $uploadDir = BASE_PATH . '/uploads/documents';
-            if (!is_dir($uploadDir)) { mkdir($uploadDir, 0777, true); }
-            
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
             $studentDir = $uploadDir . '/' . $studentId;
-            if (!is_dir($studentDir)) { mkdir($studentDir, 0777, true); }
+            if (!is_dir($studentDir)) {
+                mkdir($studentDir, 0777, true);
+            }
 
             $nomFichier = 'doc_' . uniqid() . '.' . $ext;
             $destination = $studentDir . '/' . $nomFichier;
@@ -39,8 +44,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='upload') {
             if (move_uploaded_file($_FILES['fichier']['tmp_name'], $destination)) {
                 chmod($destination, 0644);
                 $tailleKo = round($_FILES['fichier']['size'] / 1024);
-                $msg = callProcedure("CALL sp_ajouter_document(?,?,?,?,?,?,@msg)",
-                    [$studentId, $type, $_FILES['fichier']['name'], $studentId.'/'.$nomFichier, $tailleKo, $_SESSION['username']]);
+                $msg = callProcedure('CALL sp_ajouter_document(?,?,?,?,?,?,@msg)', [$studentId, $type, $_FILES['fichier']['name'], $studentId . '/' . $nomFichier, $tailleKo, $_SESSION['username']]);
 
                 if ($msg === 'OK') {
                     $message = 'Document téléversé !';
@@ -58,13 +62,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='upload') {
 
 // ── SUPPRIMER ─────────────────────────────────────────────────────────────
 if (isset($_GET['delete'])) {
-    $msg = callProcedure("CALL sp_supprimer_document(?,@msg)", [(int)$_GET['delete']]);
-    $msg === 'OK' ? $message = 'Document supprimé.' : $error = $msg;
+    $msg = callProcedure('CALL sp_supprimer_document(?,@msg)', [(int) $_GET['delete']]);
+    $msg === 'OK' ? ($message = 'Document supprimé.') : ($error = $msg);
 }
 
 // ── READ ──────────────────────────────────────────────────────────────────
-$documents = $pdo->query("SELECT * FROM v_documents")->fetchAll();
-$students  = $pdo->query("SELECT id, nom_complet FROM v_eleves_select")->fetchAll();
+$documents = $pdo->query('SELECT * FROM v_documents')->fetchAll();
+$students = $pdo->query('SELECT id, nom_complet FROM v_eleves_select')->fetchAll();
 $typesDocuments = ['Permis apprenti', 'Photo identité', 'Contrat', 'CNI / Passeport', 'Certificat médical', 'Autre'];
 
 $pageTitle = 'Documents — Auto École Pro';
@@ -81,8 +85,12 @@ include BASE_PATH . '/includes/header.php';
     </button>
 </div>
 
-<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
-<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
+    $message
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center py-2"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars(
+    $error
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
 
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
@@ -138,8 +146,14 @@ include BASE_PATH . '/includes/header.php';
         <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-cloud-upload me-2"></i>Téléverser un document</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
             <input type="hidden" name="action" value="upload">
-            <div class="mb-3"><label class="form-label">Élève</label><select name="utilisateur_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach ($students as $s): ?><option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['nom_complet']) ?></option><?php endforeach; ?></select></div>
-            <div class="mb-3"><label class="form-label">Type</label><select name="type_document" class="form-select" required><?php foreach ($typesDocuments as $t): ?><option value="<?= $t ?>"><?= $t ?></option><?php endforeach; ?></select></div>
+            <div class="mb-3"><label class="form-label">Élève</label><select name="utilisateur_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach (
+                $students
+                as $s
+            ): ?><option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['nom_complet']) ?></option><?php endforeach; ?></select></div>
+            <div class="mb-3"><label class="form-label">Type</label><select name="type_document" class="form-select" required><?php foreach (
+                $typesDocuments
+                as $t
+            ): ?><option value="<?= $t ?>"><?= $t ?></option><?php endforeach; ?></select></div>
             <div class="mb-3"><label class="form-label">Fichier (PDF, JPG, PNG, DOCX — max 5 Mo)</label><input type="file" name="fichier" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.docx" required></div>
             <div class="alert alert-info small mb-0 py-2">Une nouvelle <strong>version</strong> sera créée si le type existe déjà pour cet élève.</div>
         </div>

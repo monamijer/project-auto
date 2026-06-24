@@ -66,10 +66,12 @@ wss.on('connection', (ws) => {
             case 'ice-candidate':
                 const dest = clients.get(data.targetId);
                 if (dest && dest.ws.readyState === WebSocket.OPEN) {
-                    dest.ws.send(JSON.stringify({
-                        type: 'ice-candidate',
-                        candidate: data.candidate
-                    }));
+                    dest.ws.send(
+                        JSON.stringify({
+                            type: 'ice-candidate',
+                            candidate: data.candidate
+                        })
+                    );
                 }
                 break;
 

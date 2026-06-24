@@ -8,12 +8,12 @@ require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
-$formationStats = $pdo->query("SELECT * FROM v_stats_formations ORDER BY id")->fetchAll();
-$enrollments    = $pdo->query("SELECT * FROM v_inscriptions ORDER BY date_inscription DESC")->fetchAll();
+$formationStats = $pdo->query('SELECT * FROM v_stats_formations ORDER BY id')->fetchAll();
+$enrollments = $pdo->query('SELECT * FROM v_inscriptions ORDER BY date_inscription DESC')->fetchAll();
 
 // Pagination
 $perPage = 10;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $totalEnrollments = count($enrollments);
 $totalPages = ceil($totalEnrollments / $perPage);
 $offset = ($page - 1) * $perPage;
@@ -22,10 +22,8 @@ $enrollmentsPage = array_slice($enrollments, $offset, $perPage);
 // Recherche
 $search = trim($_GET['search'] ?? '');
 if ($search !== '') {
-    $enrollments = array_filter($enrollments, function($e) use ($search) {
-        return stripos($e['nom_complet'], $search) !== false || 
-               stripos($e['formation_nom'], $search) !== false ||
-               stripos($e['email'], $search) !== false;
+    $enrollments = array_filter($enrollments, function ($e) use ($search) {
+        return stripos($e['nom_complet'], $search) !== false || stripos($e['formation_nom'], $search) !== false || stripos($e['email'], $search) !== false;
     });
     $enrollments = array_values($enrollments);
     $totalEnrollments = count($enrollments);
@@ -52,9 +50,10 @@ include BASE_PATH . '/includes/header.php';
 <!-- Stats Cards -->
 <div class="row g-3 mb-4">
     <?php foreach ($formationStats as $stat):
+
         $attendu = $stat['total_eleves'] * $stat['formation_prix'];
         $pct = $attendu > 0 ? min(100, round(($stat['total_percu'] / $attendu) * 100)) : 0;
-    ?>
+        ?>
     <div class="col-lg-4 col-md-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
@@ -75,7 +74,8 @@ include BASE_PATH . '/includes/header.php';
             </div>
         </div>
     </div>
-    <?php endforeach; ?>
+    <?php
+    endforeach; ?>
 </div>
 
 <!-- Search -->
@@ -163,7 +163,7 @@ include BASE_PATH . '/includes/header.php';
         <nav>
             <ul class="pagination pagination-sm justify-content-center mb-0">
                 <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                    <a class="page-link" href="?page=<?= $page-1 ?>&search=<?= urlencode($search) ?>">Précédent</a>
+                    <a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Précédent</a>
                 </li>
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                 <li class="page-item <?= $i === $page ? 'active' : '' ?>">
@@ -171,7 +171,7 @@ include BASE_PATH . '/includes/header.php';
                 </li>
                 <?php endfor; ?>
                 <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-                    <a class="page-link" href="?page=<?= $page+1 ?>&search=<?= urlencode($search) ?>">Suivant</a>
+                    <a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Suivant</a>
                 </li>
             </ul>
         </nav>

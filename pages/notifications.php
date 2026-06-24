@@ -10,13 +10,13 @@ requireLogin();
 requirePermission('voir_parametres'); // réservé aux admins
 
 if (isset($_GET['lue'])) {
-    callProcedure("CALL sp_marquer_notification_lue(?,@msg)", [(int)$_GET['lue']]);
+    callProcedure('CALL sp_marquer_notification_lue(?,@msg)', [(int) $_GET['lue']]);
 }
 if (isset($_GET['tout_lire'])) {
-    callProcedure("CALL sp_marquer_toutes_notifications_lues(?,@msg)", ['all']);
+    callProcedure('CALL sp_marquer_toutes_notifications_lues(?,@msg)', ['all']);
 }
 
-$notifications = $pdo->query("SELECT * FROM v_notifications_admin")->fetchAll();
+$notifications = $pdo->query('SELECT * FROM v_notifications_admin')->fetchAll();
 
 $pageTitle = 'Notifications — Auto École Pro';
 include BASE_PATH . '/includes/header.php';
@@ -33,7 +33,7 @@ include BASE_PATH . '/includes/header.php';
     <div class="card-body p-0">
         <div class="list-group list-group-flush">
             <?php foreach ($notifications as $n): ?>
-            <div class="list-group-item d-flex justify-content-between align-items-start <?= !$n['lu']?'bg-light':'' ?>">
+            <div class="list-group-item d-flex justify-content-between align-items-start <?= !$n['lu'] ? 'bg-light' : '' ?>">
                 <div>
                     <h6 class="mb-1">
                         <?php if (!$n['lu']): ?><span class="badge bg-primary me-1">Nouveau</span><?php endif; ?>
