@@ -57,6 +57,7 @@ try {
         case 'get_messages':
             $convId = (int)$_GET['conversation_id'];
             
+            // Messages
             $stmt = $pdo->prepare("
                 SELECT m.*, eu.utilisateur AS sender_name
                 FROM messages m
@@ -73,6 +74,7 @@ try {
                 $msg['nb_lectures'] = (int)$stmt2->fetchColumn();
             }
             
+            // Participants
             $stmt = $pdo->prepare("
                 SELECT eu.id, eu.utilisateur 
                 FROM conversation_participants cp 
@@ -82,6 +84,7 @@ try {
             $stmt->execute([$convId]);
             $participants = $stmt->fetchAll();
             
+            // Typing (depuis la BDD)
             $stmt = $pdo->prepare("
                 SELECT eu.utilisateur 
                 FROM typing_indicators ti 
@@ -92,7 +95,7 @@ try {
             $stmt->execute([$convId, $userId]);
             $typing = $stmt->fetchAll(PDO::FETCH_COLUMN);
             
-            // Appel actif dans cette conversation
+            // Appel actif
             $stmt = $pdo->prepare("
                 SELECT c.*, eu.utilisateur AS caller_name
                 FROM calls c
@@ -103,6 +106,7 @@ try {
             $stmt->execute([$convId]);
             $activeCall = $stmt->fetch();
             
+            // Marquer comme lu
             $stmt = $pdo->prepare("CALL sp_marquer_messages_lus(?, ?, @msg)");
             $stmt->execute([$convId, $userId]);
             
@@ -130,9 +134,12 @@ try {
             $stmt->execute([$convId, $userId, $callType]);
             $result = $pdo->query("SELECT @call_id AS call_id, @msg AS msg")->fetch();
             
-            // Envoyer un message système dans la conversation
-            $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
-            $stmt->execute([$convId, $userId, "Appel {$callType} initié"]);
+            // Message système
+            if ($result['msg'] === 'OK') {
+                $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
+                $callMsg = $callType === 'video' ? 'Appel vidéo initié' : 'Appel audio initié';
+                $stmt->execute([$convId, $userId, $callMsg]);
+            }
             
             echo json_encode([
                 'success' => $result['msg'] === 'OK',
@@ -145,13 +152,35 @@ try {
             $stmt = $pdo->prepare("CALL sp_repondre_appel(?, ?, @msg)");
             $stmt->execute([$callId, $userId]);
             $msg = $pdo->query("SELECT @msg AS msg")->fetchColumn();
-            echo json_encode(['success' => $msg === 'OK']);
+            
+            if ($msg === 'OK') {
+                // Message système
+                $stmt = $pdo->prepare("SELECT conversation_id FROM calls WHERE id = ?");
+                $stmt->execute([$callId]);
+                $convId = $stmt->fetchColumn();
+                if ($convId) {
+                    $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
+                    $stmt->execute([$convId, $userId, 'Appel accepté']);
+                }
+            }
+            
+            echo json_encode(['success' => $msg === 'OK', 'call_id' => $callId]);
             break;
             
         case 'decline_call':
             $callId = (int)$_POST['call_id'];
             $stmt = $pdo->prepare("CALL sp_refuser_appel(?, @msg)");
             $stmt->execute([$callId]);
+            
+            // Message système
+            $stmt = $pdo->prepare("SELECT conversation_id FROM calls WHERE id = ?");
+            $stmt->execute([$callId]);
+            $convId = $stmt->fetchColumn();
+            if ($convId) {
+                $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
+                $stmt->execute([$convId, $userId, 'Appel refusé']);
+            }
+            
             echo json_encode(['success' => true]);
             break;
             
@@ -159,18 +188,21 @@ try {
             $callId = (int)$_POST['call_id'];
             $stmt = $pdo->prepare("CALL sp_raccrocher_appel(?, ?, @msg)");
             $stmt->execute([$callId, $userId]);
+            
+            // Message système
+            $stmt = $pdo->prepare("SELECT conversation_id FROM calls WHERE id = ?");
+            $stmt->execute([$callId]);
+            $convId = $stmt->fetchColumn();
+            if ($convId) {
+                $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
+                $stmt->execute([$convId, $userId, 'Appel terminé']);
+            }
+            
             echo json_encode(['success' => true]);
             break;
             
-        case 'check_incoming_calls':
-            $stmt = $pdo->prepare("CALL sp_appels_entrants(?)");
-            $stmt->execute([$userId]);
-            $incomingCalls = $stmt->fetchAll();
-            echo json_encode(['incoming_calls' => $incomingCalls]);
-            break;
-            
         default:
-            echo json_encode(['success' => false, 'error' => 'Action inconnue']);
+            echo json_encode(['success' => false, 'error' => 'Action inconnue: ' . $action]);
     }
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
