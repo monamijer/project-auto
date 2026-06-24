@@ -1,7 +1,4 @@
 <?php
-/**
- * pages/actions/chat_actions.php — Actions AJAX pour la messagerie
- */
 session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
@@ -14,195 +11,103 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 try {
     switch ($action) {
-        
         case 'create_conversation':
-            $participantId = (int)$_POST['participant_id'];
-            if ($participantId === $userId) {
-                echo json_encode(['success' => false, 'error' => 'Impossible.']);
-                exit;
-            }
-            
+            $pId = (int)$_POST['participant_id'];
+            if ($pId === $userId) { echo json_encode(['success' => false, 'error' => 'Impossible.']); exit; }
             $stmt = $pdo->prepare("CALL sp_creer_conversation(?, ?, @conv_id, @msg)");
-            $stmt->execute([$userId, $participantId]);
-            $result = $pdo->query("SELECT @conv_id AS conv_id, @msg AS msg")->fetch();
-            
-            echo json_encode([
-                'success' => $result['msg'] === 'OK',
-                'conversation_id' => (int)$result['conv_id']
-            ]);
+            $stmt->execute([$userId, $pId]);
+            $r = $pdo->query("SELECT @conv_id AS cid, @msg AS msg")->fetch();
+            echo json_encode(['success' => $r['msg'] === 'OK', 'conversation_id' => (int)$r['cid']]);
             break;
-            
+
         case 'send_message':
-            $convId = (int)$_POST['conversation_id'];
-            $content = trim($_POST['content'] ?? '');
-            $msgType = $_POST['message_type'] ?? 'text';
-            $filePath = $_POST['file_path'] ?? '';
-            $repliedTo = (int)($_POST['replied_to'] ?? 0);
-            
-            if (empty($content) && $msgType === 'text') {
-                echo json_encode(['success' => false, 'error' => 'Message vide.']);
+            $cid = (int)$_POST['conversation_id'];
+            $c = trim($_POST['content'] ?? '');
+            if (empty($c)) { echo json_encode(['success' => false]); exit; }
+            $pdo->prepare("INSERT INTO messages (conversation_id, sender_id, message_type, content) VALUES (?, ?, 'text', ?)")->execute([$cid, $userId, $c]);
+            $pdo->prepare("UPDATE conversations SET updated_at = NOW() WHERE id = ?")->execute([$cid]);
+            echo json_encode(['success' => true, 'message_id' => (int)$pdo->lastInsertId()]);
+            break;
+
+        case 'delete_for_me':
+            $msgId = (int)$_POST['message_id'];
+            $pdo->prepare("INSERT IGNORE INTO message_reads (message_id, utilisateur_id, deleted_for_me) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE deleted_for_me = 1")->execute([$msgId, $userId]);
+            echo json_encode(['success' => true]);
+            break;
+
+        case 'delete_for_all':
+            $msgId = (int)$_POST['message_id'];
+            // Vérifier que l'utilisateur est bien l'expéditeur
+            $stmt = $pdo->prepare("SELECT sender_id, TIMESTAMPDIFF(MINUTE, created_at, NOW()) AS diff FROM messages WHERE id = ?");
+            $stmt->execute([$msgId]);
+            $msg = $stmt->fetch();
+            if (!$msg || $msg['sender_id'] != $userId) {
+                echo json_encode(['success' => false, 'error' => 'Non autorisé.']);
                 exit;
             }
-            
-            $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, ?, ?, ?, @msg_id, @msg)");
-            $stmt->execute([$convId, $userId, $content, $msgType, $filePath, $repliedTo]);
-            $result = $pdo->query("SELECT @msg_id AS msg_id, @msg AS msg")->fetch();
-            
-            echo json_encode([
-                'success' => $result['msg'] === 'OK',
-                'message_id' => (int)$result['msg_id']
-            ]);
+            if ($msg['diff'] > 10) {
+                echo json_encode(['success' => false, 'error' => 'Délai de 10 minutes dépassé.']);
+                exit;
+            }
+            $pdo->prepare("UPDATE messages SET deleted_at = NOW(), content = '🗑️ Message supprimé' WHERE id = ?")->execute([$msgId]);
+            echo json_encode(['success' => true]);
             break;
-            
+
         case 'get_messages':
-            $convId = (int)$_GET['conversation_id'];
-            
-            // Messages
+            $cid = (int)$_GET['conversation_id'];
             $stmt = $pdo->prepare("
-                SELECT m.*, eu.utilisateur AS sender_name
-                FROM messages m
-                JOIN expirations_utilisateurs eu ON eu.id = m.sender_id
-                WHERE m.conversation_id = ? AND m.deleted_at IS NULL
+                SELECT m.*, eu.utilisateur AS sender_name,
+                       (SELECT COUNT(*) FROM message_reads mr WHERE mr.message_id = m.id AND mr.utilisateur_id = ? AND mr.deleted_for_me = 1) AS hidden_for_me
+                FROM messages m 
+                JOIN expirations_utilisateurs eu ON eu.id = m.sender_id 
+                WHERE m.conversation_id = ? 
                 ORDER BY m.created_at ASC LIMIT 100
             ");
-            $stmt->execute([$convId]);
-            $messages = $stmt->fetchAll();
+            $stmt->execute([$userId, $cid]);
+            $msgs = array_filter($stmt->fetchAll(), fn($m) => !$m['hidden_for_me']);
+            $msgs = array_values($msgs);
             
-            foreach ($messages as &$msg) {
-                $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM message_reads WHERE message_id = ?");
-                $stmt2->execute([$msg['id']]);
-                $msg['nb_lectures'] = (int)$stmt2->fetchColumn();
-            }
+            $stmt = $pdo->prepare("SELECT eu.id, eu.utilisateur FROM conversation_participants cp JOIN expirations_utilisateurs eu ON eu.id = cp.utilisateur_id WHERE cp.conversation_id = ?");
+            $stmt->execute([$cid]);
+            $parts = $stmt->fetchAll();
             
-            // Participants
-            $stmt = $pdo->prepare("
-                SELECT eu.id, eu.utilisateur 
-                FROM conversation_participants cp 
-                JOIN expirations_utilisateurs eu ON eu.id = cp.utilisateur_id 
-                WHERE cp.conversation_id = ?
-            ");
-            $stmt->execute([$convId]);
-            $participants = $stmt->fetchAll();
+            $stmt = $pdo->prepare("SELECT c.*, eu.utilisateur AS caller_name FROM calls c JOIN expirations_utilisateurs eu ON eu.id = c.caller_id WHERE c.conversation_id = ? AND c.status IN ('ringing','ongoing') ORDER BY c.created_at DESC LIMIT 1");
+            $stmt->execute([$cid]);
+            $call = $stmt->fetch();
             
-            // Typing (depuis la BDD)
-            $stmt = $pdo->prepare("
-                SELECT eu.utilisateur 
-                FROM typing_indicators ti 
-                JOIN expirations_utilisateurs eu ON eu.id = ti.utilisateur_id 
-                WHERE ti.conversation_id = ? AND ti.is_typing = 1 AND ti.utilisateur_id != ?
-                AND ti.updated_at > DATE_SUB(NOW(), INTERVAL 5 SECOND)
-            ");
-            $stmt->execute([$convId, $userId]);
-            $typing = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            // Marquer comme lu (sans deleted_for_me)
+            $pdo->prepare("INSERT IGNORE INTO message_reads (message_id, utilisateur_id) SELECT m.id, ? FROM messages m WHERE m.conversation_id = ? AND m.sender_id != ?")->execute([$userId, $cid, $userId]);
             
-            // Appel actif
-            $stmt = $pdo->prepare("
-                SELECT c.*, eu.utilisateur AS caller_name
-                FROM calls c
-                JOIN expirations_utilisateurs eu ON eu.id = c.caller_id
-                WHERE c.conversation_id = ? AND c.status IN ('ringing','ongoing')
-                ORDER BY c.created_at DESC LIMIT 1
-            ");
-            $stmt->execute([$convId]);
-            $activeCall = $stmt->fetch();
-            
-            // Marquer comme lu
-            $stmt = $pdo->prepare("CALL sp_marquer_messages_lus(?, ?, @msg)");
-            $stmt->execute([$convId, $userId]);
-            
-            echo json_encode([
-                'messages' => $messages,
-                'participants' => $participants,
-                'typing' => $typing,
-                'active_call' => $activeCall ?: null
-            ]);
+            echo json_encode(['messages' => $msgs, 'participants' => $parts, 'typing' => [], 'active_call' => $call ?: null]);
             break;
-            
+
         case 'typing':
-            $convId = (int)$_POST['conversation_id'];
-            $isTyping = (int)$_POST['is_typing'];
-            $stmt = $pdo->prepare("CALL sp_update_typing(?, ?, ?, @msg)");
-            $stmt->execute([$convId, $userId, $isTyping]);
+            $cid = (int)$_POST['conversation_id'];
+            $v = (int)$_POST['is_typing'];
+            $pdo->prepare("INSERT INTO typing_indicators (conversation_id, utilisateur_id, is_typing, updated_at) VALUES (?,?,?,NOW()) ON DUPLICATE KEY UPDATE is_typing=?, updated_at=NOW()")->execute([$cid, $userId, $v, $v]);
             echo json_encode(['success' => true]);
             break;
-            
+
         case 'init_call':
-            $convId = (int)$_POST['conversation_id'];
-            $callType = $_POST['call_type'] ?? 'audio';
-            
-            $stmt = $pdo->prepare("CALL sp_initier_appel(?, ?, ?, @call_id, @msg)");
-            $stmt->execute([$convId, $userId, $callType]);
-            $result = $pdo->query("SELECT @call_id AS call_id, @msg AS msg")->fetch();
-            
-            // Message système
-            if ($result['msg'] === 'OK') {
-                $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
-                $callMsg = $callType === 'video' ? 'Appel vidéo initié' : 'Appel audio initié';
-                $stmt->execute([$convId, $userId, $callMsg]);
-            }
-            
-            echo json_encode([
-                'success' => $result['msg'] === 'OK',
-                'call_id' => (int)$result['call_id']
-            ]);
+            $cid = (int)$_POST['conversation_id'];
+            $type = $_POST['call_type'] ?? 'audio';
+            $pdo->prepare("INSERT INTO calls (conversation_id, caller_id, call_type, status) VALUES (?,?,?,'ringing')")->execute([$cid, $userId, $type]);
+            echo json_encode(['success' => true, 'call_id' => (int)$pdo->lastInsertId()]);
             break;
-            
+
         case 'answer_call':
-            $callId = (int)$_POST['call_id'];
-            $stmt = $pdo->prepare("CALL sp_repondre_appel(?, ?, @msg)");
-            $stmt->execute([$callId, $userId]);
-            $msg = $pdo->query("SELECT @msg AS msg")->fetchColumn();
-            
-            if ($msg === 'OK') {
-                // Message système
-                $stmt = $pdo->prepare("SELECT conversation_id FROM calls WHERE id = ?");
-                $stmt->execute([$callId]);
-                $convId = $stmt->fetchColumn();
-                if ($convId) {
-                    $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
-                    $stmt->execute([$convId, $userId, 'Appel accepté']);
-                }
-            }
-            
-            echo json_encode(['success' => $msg === 'OK', 'call_id' => $callId]);
+            $pdo->prepare("UPDATE calls SET status='ongoing', started_at=NOW() WHERE id=? AND status='ringing'")->execute([(int)$_POST['call_id']]);
+            echo json_encode(['success' => true]);
             break;
-            
+
         case 'decline_call':
-            $callId = (int)$_POST['call_id'];
-            $stmt = $pdo->prepare("CALL sp_refuser_appel(?, @msg)");
-            $stmt->execute([$callId]);
-            
-            // Message système
-            $stmt = $pdo->prepare("SELECT conversation_id FROM calls WHERE id = ?");
-            $stmt->execute([$callId]);
-            $convId = $stmt->fetchColumn();
-            if ($convId) {
-                $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
-                $stmt->execute([$convId, $userId, 'Appel refusé']);
-            }
-            
-            echo json_encode(['success' => true]);
-            break;
-            
         case 'end_call':
-            $callId = (int)$_POST['call_id'];
-            $stmt = $pdo->prepare("CALL sp_raccrocher_appel(?, ?, @msg)");
-            $stmt->execute([$callId, $userId]);
-            
-            // Message système
-            $stmt = $pdo->prepare("SELECT conversation_id FROM calls WHERE id = ?");
-            $stmt->execute([$callId]);
-            $convId = $stmt->fetchColumn();
-            if ($convId) {
-                $stmt = $pdo->prepare("CALL sp_envoyer_message(?, ?, ?, 'call', '', 0, @msg_id, @msg2)");
-                $stmt->execute([$convId, $userId, 'Appel terminé']);
-            }
-            
+            $pdo->prepare("UPDATE calls SET status='ended', ended_at=NOW() WHERE id=?")->execute([(int)$_POST['call_id']]);
             echo json_encode(['success' => true]);
             break;
-            
+
         default:
-            echo json_encode(['success' => false, 'error' => 'Action inconnue: ' . $action]);
+            echo json_encode(['success' => false, 'error' => 'Action inconnue']);
     }
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
