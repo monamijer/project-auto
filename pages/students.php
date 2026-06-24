@@ -36,7 +36,7 @@ $students   = $pdo->query("SELECT * FROM v_eleves ORDER BY date_inscription DESC
 $formations = $pdo->query("SELECT * FROM v_formations")->fetchAll();
 
 // Pagination + Recherche
-$perPage = 20;
+$perPage = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $search = trim($_GET['search'] ?? '');
 if ($search !== '') {
