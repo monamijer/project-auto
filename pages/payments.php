@@ -26,7 +26,7 @@ $payments    = $pdo->query("SELECT * FROM v_paiements ORDER BY date_paiement DES
 $finances    = $pdo->query("SELECT * FROM v_stats_financieres")->fetch();
 $totalPercu  = $finances['total_percu'];
 $totalDu     = $finances['total_attendu'];
-$students    = $pdo->query("SELECT id, label_paiement AS label FROM v_eleves_select")->fetchAll();
+$students = $pdo->query("SELECT id, nom_complet AS label FROM v_eleves_select")->fetchAll();
 
 // Pagination
 $perPage = 10;
