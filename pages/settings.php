@@ -121,6 +121,13 @@ if (isset($_GET['delete_compte'])) {
         }
     }
 }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_config') {
+    requirePermission('voir_parametres');
+    foreach ($_POST['config'] ?? [] as $key => $value) {
+        $pdo->prepare("INSERT INTO config_systeme (cle, valeur) VALUES (?, ?) ON DUPLICATE KEY UPDATE valeur = ?")->execute([$key, trim($value), trim($value)]);
+    }
+    $message = 'Configuration enregistrée !';
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'purger_journal') {
     requirePermission('gestion_comptes');
     $pdo->exec("DELETE t1 FROM journal_connexions t1 INNER JOIN journal_connexions t2 WHERE t1.id > t2.id AND t1.utilisateur = t2.utilisateur AND ABS(TIMESTAMPDIFF(SECOND, t1.heure_connexion, t2.heure_connexion)) < 60");
@@ -344,6 +351,26 @@ include BASE_PATH . '/includes/header.php';
             <small class="text-muted">PHP <?= phpversion() ?> · Serveur <?= date('Y-m-d H:i:s') ?></small>
             <a href="<?= BASE_URL ?>/pages/corbeille.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-trash3 me-1"></i>Corbeille</a>
         </div>
+    </div>
+</div>
+<!-- Configuration école -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-building me-2"></i>Configuration de l'école</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" class="row g-3">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="save_config">
+            <?php
+            $configFields = ['nom_ecole'=>'Nom de l\'école', 'telephone'=>'Téléphone', 'email_ecole'=>'Email', 'adresse'=>'Adresse', 'devise'=>'Devise'];
+            foreach ($configFields as $key => $label):
+                $val = getConfig($key);
+            ?>
+            <div class="col-md-6"><label class="form-label"><?= $label ?></label><input type="text" name="config[<?= $key ?>]" class="form-control" value="<?= htmlspecialchars($val) ?>"></div>
+            <?php endforeach; ?>
+            <div class="col-12"><button type="submit" class="btn btn-primary">Enregistrer la configuration</button></div>
+        </form>
     </div>
 </div>
 
