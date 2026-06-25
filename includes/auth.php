@@ -1,6 +1,6 @@
 <?php
 /**
- * includes/auth.php — Authentification, permissions, journalisation
+ * includes/auth.php — Authentification, permissions, journalisation, helpers
  *
  * RÔLES : admin, directeur, secretaire, caissier, moniteur, stagiaire
  */
@@ -77,12 +77,12 @@ function hasPermission(string $permission): bool
 {
     $role = $_SESSION['role'] ?? 'stagiaire';
     $permissions = [
-        'admin' => ['crud_eleves'=>true,'crud_moniteurs'=>true,'crud_vehicules'=>true,'crud_lecons'=>true,'crud_paiements'=>true,'voir_parametres'=>true,'gestion_comptes'=>true,'gestion_documents'=>true,'export_donnees'=>true,'voir_chat'=>true],
-        'directeur' => ['crud_eleves'=>true,'crud_moniteurs'=>true,'crud_vehicules'=>true,'crud_lecons'=>true,'crud_paiements'=>true,'voir_parametres'=>true,'gestion_comptes'=>false,'gestion_documents'=>true,'export_donnees'=>true,'voir_chat'=>true],
-        'secretaire' => ['crud_eleves'=>true,'crud_moniteurs'=>false,'crud_vehicules'=>false,'crud_lecons'=>true,'crud_paiements'=>true,'voir_parametres'=>false,'gestion_comptes'=>false,'gestion_documents'=>true,'export_donnees'=>false,'voir_chat'=>true],
-        'caissier' => ['crud_eleves'=>false,'crud_moniteurs'=>false,'crud_vehicules'=>false,'crud_lecons'=>false,'crud_paiements'=>true,'voir_parametres'=>false,'gestion_comptes'=>false,'gestion_documents'=>false,'export_donnees'=>false,'voir_chat'=>true],
-        'moniteur' => ['crud_eleves'=>false,'crud_moniteurs'=>false,'crud_vehicules'=>false,'crud_lecons'=>true,'crud_paiements'=>false,'voir_parametres'=>false,'gestion_comptes'=>false,'gestion_documents'=>false,'export_donnees'=>false,'voir_chat'=>true],
-        'stagiaire' => ['crud_eleves'=>false,'crud_moniteurs'=>false,'crud_vehicules'=>false,'crud_lecons'=>false,'crud_paiements'=>false,'voir_parametres'=>false,'gestion_comptes'=>false,'gestion_documents'=>false,'export_donnees'=>false,'voir_chat'=>true],
+        'admin'      => ['crud_eleves'=>1,'crud_moniteurs'=>1,'crud_vehicules'=>1,'crud_lecons'=>1,'crud_paiements'=>1,'voir_parametres'=>1,'gestion_comptes'=>1,'gestion_documents'=>1,'export_donnees'=>1,'voir_chat'=>1],
+        'directeur'  => ['crud_eleves'=>1,'crud_moniteurs'=>1,'crud_vehicules'=>1,'crud_lecons'=>1,'crud_paiements'=>1,'voir_parametres'=>1,'gestion_comptes'=>0,'gestion_documents'=>1,'export_donnees'=>1,'voir_chat'=>1],
+        'secretaire' => ['crud_eleves'=>1,'crud_moniteurs'=>0,'crud_vehicules'=>0,'crud_lecons'=>1,'crud_paiements'=>1,'voir_parametres'=>0,'gestion_comptes'=>0,'gestion_documents'=>1,'export_donnees'=>0,'voir_chat'=>1],
+        'caissier'   => ['crud_eleves'=>0,'crud_moniteurs'=>0,'crud_vehicules'=>0,'crud_lecons'=>0,'crud_paiements'=>1,'voir_parametres'=>0,'gestion_comptes'=>0,'gestion_documents'=>0,'export_donnees'=>0,'voir_chat'=>1],
+        'moniteur'   => ['crud_eleves'=>0,'crud_moniteurs'=>0,'crud_vehicules'=>0,'crud_lecons'=>1,'crud_paiements'=>0,'voir_parametres'=>0,'gestion_comptes'=>0,'gestion_documents'=>0,'export_donnees'=>0,'voir_chat'=>1],
+        'stagiaire'  => ['crud_eleves'=>0,'crud_moniteurs'=>0,'crud_vehicules'=>0,'crud_lecons'=>0,'crud_paiements'=>0,'voir_parametres'=>0,'gestion_comptes'=>0,'gestion_documents'=>0,'export_donnees'=>0,'voir_chat'=>1],
     ];
     return $permissions[$role][$permission] ?? false;
 }
@@ -119,4 +119,23 @@ function logActivity(string $action, string $module, ?int $elementId = null, str
 function notifyAdmins(string $titre, string $message, string $lien = ''): void
 {
     callProcedure("CALL sp_creer_notification(?,?,?,?,@msg)", ['all', $titre, $message, $lien]);
+}
+
+function getConfig(string $cle): string
+{
+    global $pdo;
+    static $config = null;
+    if ($config === null) {
+        try {
+            $config = $pdo->query("SELECT cle, valeur FROM config_systeme")->fetchAll(PDO::FETCH_KEY_PAIR);
+        } catch (Exception $e) {
+            $config = [];
+        }
+    }
+    return $config[$cle] ?? '';
+}
+
+// Charger le mailer si disponible
+if (file_exists(BASE_PATH . '/includes/mailer.php')) {
+    require_once BASE_PATH . '/includes/mailer.php';
 }

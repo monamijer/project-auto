@@ -1,26 +1,31 @@
 {
   "name": "project_auto",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Auto École Pro – Management system",
   "license": "MIT",
   "author": "jerome",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
+    "test": "jasmine",
+    "start": "node server.js",
     "lint": "prettier --check --plugin=@prettier/plugin-php \"**/*.{php,js,css,html}\"",
-    "lint:fix": "prettier --write --plugin=@prettier/plugin-php \"**/*.{php,js,css,html}\"",
-    "format": "prettier --write --plugin=@prettier/plugin-php \"**/*.{php,js,css,html}\""
+    "format": "prettier --write --plugin=@prettier/plugin-php \"**/*.{php,js,css,html}\"",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.10.0",
+    "chart.js": "^4.4.0",
     "datatables.net": "^1.13.4",
     "datatables.net-bs5": "^1.13.4",
+    "fullcalendar": "^6.1.0",
     "jquery": "^3.6.0",
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@prettier/plugin-php": "^0.22.4",
-    "prettier": "^3.8.4"
+    "@prettier/plugin-php": "^0.22.0",
+    "prettier": "^3.3.0",
+    "nodemon": "^3.0.0"
   }
 }
