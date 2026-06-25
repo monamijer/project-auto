@@ -5,7 +5,7 @@ require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 header('Content-Type: application/json');
 
-$events = $pdo->query("SELECT * FROM v_lecons_calendrier")->fetchAll();
+$events = $pdo->query('SELECT * FROM v_lecons_calendrier')->fetchAll();
 $result = [];
 foreach ($events as $e) {
     $colors = ['programmée' => '#4f46e5', 'effectuée' => '#22c55e', 'annulée' => '#ef4444'];

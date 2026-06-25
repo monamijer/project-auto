@@ -14,19 +14,19 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_resultat') {
     requirePermission('crud_eleves');
-    $msg = callProcedure("CALL sp_enregistrer_resultat(?,?,?,?,?,?,?,?,@msg)", [
-        (int)$_POST['utilisateur_id'],
+    $msg = callProcedure('CALL sp_enregistrer_resultat(?,?,?,?,?,?,?,?,@msg)', [
+        (int) $_POST['utilisateur_id'],
         $_POST['type_examen'],
         $_POST['date_examen'],
         $_POST['resultat'],
-        (int)$_POST['note'],
+        (int) $_POST['note'],
         trim($_POST['centre_examen'] ?? ''),
         trim($_POST['commentaire'] ?? ''),
-        $_SESSION['username']
+        $_SESSION['username'],
     ]);
     if ($msg === 'OK') {
         $message = 'Résultat enregistré !';
-        logActivity('AJOUT', 'examens', (int)$_POST['utilisateur_id']);
+        logActivity('AJOUT', 'examens', (int) $_POST['utilisateur_id']);
     } else {
         $error = $msg;
     }
@@ -38,7 +38,7 @@ $resultats = $pdo->query('SELECT * FROM v_resultats_examens ORDER BY date_examen
 $tousEleves = $pdo->query("SELECT id, CONCAT(prenom, ' ', nom) AS nom_complet FROM utilisateurs WHERE deleted_at IS NULL ORDER BY nom")->fetchAll();
 
 $perPage = 10;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $totalEligible = count($eligible);
 $totalPages = ceil($totalEligible / $perPage);
 $offset = ($page - 1) * $perPage;
@@ -60,8 +60,12 @@ include BASE_PATH . '/includes/header.php';
     <?php endif; ?>
 </div>
 
-<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
-<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
+    $message
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars(
+    $error
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
 
 <!-- Stats Cards -->
 <div class="row g-3 mb-4">
@@ -82,7 +86,8 @@ include BASE_PATH . '/includes/header.php';
             </div>
         </div>
     </div>
-    <?php endforeach; ?>
+    <?php
+    endforeach; ?>
 </div>
 
 <!-- Élèves éligibles -->
@@ -97,15 +102,17 @@ include BASE_PATH . '/includes/header.php';
             <tbody>
             <?php if (empty($eligiblePage)): ?>
             <tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-emoji-neutral display-4 d-block mb-2"></i>Aucun élève éligible</td></tr>
-            <?php else: foreach ($eligiblePage as $row): ?>
+            <?php else:foreach ($eligiblePage as $row): ?>
             <tr>
                 <td class="ps-3"><span class="fw-medium"><?= htmlspecialchars($row['nom_complet']) ?></span></td>
-                <td><small><div><?= htmlspecialchars($row['email']) ?></div><?php if ($row['telephone']): ?><div class="text-muted"><?= htmlspecialchars($row['telephone']) ?></div><?php endif; ?></small></td>
+                <td><small><div><?= htmlspecialchars($row['email']) ?></div><?php if ($row['telephone']): ?><div class="text-muted"><?= htmlspecialchars(
+    $row['telephone']
+) ?></div><?php endif; ?></small></td>
                 <td><?= htmlspecialchars($row['formation_nom']) ?></td>
                 <td><span class="badge bg-success bg-opacity-10 text-success"><?= $row['lecons_effectuees'] ?></span></td>
                 <td class="text-end pe-3"><a href="<?= BASE_URL ?>/pages/student_profile.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
             </tr>
-            <?php endforeach; endif; ?>
+            <?php endforeach;endif; ?>
             </tbody>
         </table>
     </div></div>
@@ -127,17 +134,17 @@ include BASE_PATH . '/includes/header.php';
             <tbody>
             <?php if (empty($resultats)): ?>
             <tr><td colspan="7" class="text-center py-4 text-muted">Aucun résultat enregistré</td></tr>
-            <?php else: foreach ($resultats as $r): ?>
+            <?php else:foreach ($resultats as $r): ?>
             <tr>
                 <td class="ps-3"><small><?= date('d/m/Y', strtotime($r['date_examen'])) ?></small></td>
                 <td><span class="fw-medium"><?= htmlspecialchars($r['nom_complet']) ?></span></td>
                 <td><span class="badge bg-light text-dark"><?= $r['type_examen'] === 'theorique' ? 'Théorique' : 'Pratique' ?></span></td>
                 <td><span class="badge <?= $r['resultat'] === 'reussi' ? 'bg-success' : 'bg-danger' ?>"><?= $r['resultat'] === 'reussi' ? 'Réussi' : 'Échoué' ?></span></td>
-                <td><?= $r['note'] ? $r['note'].'/100' : '—' ?></td>
+                <td><?= $r['note'] ? $r['note'] . '/100' : '—' ?></td>
                 <td><small><?= htmlspecialchars($r['centre_examen'] ?? '—') ?></small></td>
                 <td><small class="text-muted"><?= htmlspecialchars($r['commentaire'] ?? '—') ?></small></td>
             </tr>
-            <?php endforeach; endif; ?>
+            <?php endforeach;endif; ?>
             </tbody>
         </table>
     </div></div>

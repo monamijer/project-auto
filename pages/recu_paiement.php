@@ -8,9 +8,9 @@ require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
-$paiementId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$paiementId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-$stmt = $pdo->prepare("SELECT * FROM v_recu_paiement WHERE id = ?");
+$stmt = $pdo->prepare('SELECT * FROM v_recu_paiement WHERE id = ?');
 $stmt->execute([$paiementId]);
 $recu = $stmt->fetch();
 
@@ -62,7 +62,9 @@ include BASE_PATH . '/includes/header.php';
         </div>
         <div class="bg-light rounded-3 p-3 mb-3">
             <div class="row align-items-center">
-                <div class="col-4"><small class="text-muted d-block">Montant payé</small><span class="fs-4 fw-bold text-success"><?= number_format($recu['montant'], 2) ?> <?= htmlspecialchars(getConfig('devise') ?: '$') ?></span></div>
+                <div class="col-4"><small class="text-muted d-block">Montant payé</small><span class="fs-4 fw-bold text-success"><?= number_format($recu['montant'], 2) ?> <?= htmlspecialchars(
+     getConfig('devise') ?: '$'
+ ) ?></span></div>
                 <div class="col-4"><small class="text-muted d-block">Mode</small><span class="fw-medium"><?= htmlspecialchars($recu['methode']) ?></span></div>
                 <div class="col-4"><small class="text-muted d-block">Date</small><span class="fw-medium"><?= date('d/m/Y', strtotime($recu['date_paiement'])) ?></span></div>
             </div>

@@ -16,7 +16,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
 if ($isLoggedIn && file_exists(BASE_PATH . '/includes/header.php')) {
     include BASE_PATH . '/includes/header.php';
 } else {
-    ?>
+     ?>
     <!DOCTYPE html>
     <html lang="fr">
     <head>
@@ -50,8 +50,7 @@ if ($isLoggedIn && file_exists(BASE_PATH . '/includes/header.php')) {
     <?php endif; ?>
 </div>
 
-<?php
-if ($isLoggedIn && file_exists(BASE_PATH . '/includes/footer.php')) {
+<?php if ($isLoggedIn && file_exists(BASE_PATH . '/includes/footer.php')) {
     include BASE_PATH . '/includes/footer.php';
 } else {
     echo '</div></body></html>';

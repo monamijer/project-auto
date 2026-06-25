@@ -11,7 +11,9 @@ $envFile = dirname(__DIR__) . '/.env';
 if (file_exists($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) continue;
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
         if (strpos($line, '=') !== false) {
             list($key, $value) = explode('=', $line, 2);
             $_ENV[trim($key)] = trim($value);
@@ -62,7 +64,11 @@ function getPDO()
             if (ENVIRONMENT === 'production') {
                 die('Erreur de connexion à la base de données.');
             }
-            die('<div style="padding:20px;background:#f8d7da;color:#842029;font-family:sans-serif;border-radius:8px;margin:20px;"><strong>❌ Erreur connexion PDO</strong><br><br>' . htmlspecialchars($e->getMessage()) . '</div>');
+            die(
+                '<div style="padding:20px;background:#f8d7da;color:#842029;font-family:sans-serif;border-radius:8px;margin:20px;"><strong>❌ Erreur connexion PDO</strong><br><br>' .
+                    htmlspecialchars($e->getMessage()) .
+                    '</div>'
+            );
         }
     }
     return $pdo;
@@ -70,7 +76,7 @@ function getPDO()
 
 $pdo = getPDO();
 // Custom error handler pour les erreurs fatales
-register_shutdown_function(function() {
+register_shutdown_function(function () {
     $error = error_get_last();
     if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
         if (ENVIRONMENT === 'production') {

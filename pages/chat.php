@@ -18,12 +18,12 @@ require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
-$userId   = (int) $_SESSION['user_id'];
+$userId = (int) $_SESSION['user_id'];
 $username = $_SESSION['username'];
 
 function getPhotoUrl(int $uid): ?string
 {
-    foreach (['jpg','jpeg','png','webp','gif'] as $ext) {
+    foreach (['jpg', 'jpeg', 'png', 'webp', 'gif'] as $ext) {
         $p = BASE_PATH . '/uploads/profiles/profile_' . $uid . '.' . $ext;
         if (file_exists($p)) {
             return BASE_URL . '/uploads/profiles/profile_' . $uid . '.' . $ext . '?v=' . filemtime($p);
@@ -32,8 +32,8 @@ function getPhotoUrl(int $uid): ?string
     return null;
 }
 
-$convs  = $pdo->query("SELECT * FROM v_chat_conversations WHERE utilisateur_id = $userId ORDER BY updated_at DESC")->fetchAll();
-$users  = $pdo->query("SELECT * FROM v_chat_utilisateurs WHERE id != $userId ORDER BY utilisateur")->fetchAll();
+$convs = $pdo->query("SELECT * FROM v_chat_conversations WHERE utilisateur_id = $userId ORDER BY updated_at DESC")->fetchAll();
+$users = $pdo->query("SELECT * FROM v_chat_utilisateurs WHERE id != $userId ORDER BY utilisateur")->fetchAll();
 $myPhoto = getPhotoUrl($userId);
 
 $pageTitle = 'Messages';
@@ -154,14 +154,15 @@ include BASE_PATH . '/includes/header.php';
             $cp = getPhotoUrl($c['correspondant_id']); ?>
         <div class="ci" data-id="<?= $c['id'] ?>" onclick="openConv(<?= $c['id'] ?>,<?= $c['correspondant_id'] ?>,this)">
             <div class="ca"><?php if ($cp): ?><img src="<?= $cp ?>" alt="">
-            <?php else: ?><div class="aph"><?= strtoupper(substr($c['correspondant_nom']??'?',0,1)) ?></div><?php endif; ?></div>
+            <?php else: ?><div class="aph"><?= strtoupper(substr($c['correspondant_nom'] ?? '?', 0, 1)) ?></div><?php endif; ?></div>
             <div class="ci-info">
-                <strong><?= htmlspecialchars($c['correspondant_nom']??'Inconnu') ?></strong>
-                <small><?= htmlspecialchars(mb_strimwidth($c['dernier_message']??'',0,34,'…')) ?></small>
+                <strong><?= htmlspecialchars($c['correspondant_nom'] ?? 'Inconnu') ?></strong>
+                <small><?= htmlspecialchars(mb_strimwidth($c['dernier_message'] ?? '', 0, 34, '…')) ?></small>
             </div>
-            <?php if ($c['non_lus']>0): ?><span class="nb"><?= $c['non_lus'] ?></span><?php endif; ?>
+            <?php if ($c['non_lus'] > 0): ?><span class="nb"><?= $c['non_lus'] ?></span><?php endif; ?>
         </div>
-        <?php endforeach; ?>
+        <?php
+        endforeach; ?>
         <?php endif; ?>
     </div>
 

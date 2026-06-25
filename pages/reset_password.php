@@ -19,7 +19,7 @@ if (!empty($token)) {
         WHERE pr.token = ? AND pr.used = 0");
     $stmt->execute([$token]);
     $reset = $stmt->fetch();
-    
+
     if ($reset) {
         if (strtotime($reset['expires_at']) > time()) {
             $validToken = true;
@@ -36,21 +36,21 @@ if (!empty($token)) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
     $password = $_POST['password'] ?? '';
     $confirm = $_POST['confirm'] ?? '';
-    
+
     if (strlen($password) < 6) {
         $error = 'Le mot de passe doit contenir au moins 6 caractères.';
     } elseif ($password !== $confirm) {
         $error = 'Les mots de passe ne correspondent pas.';
     } else {
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        
+
         // Mettre à jour le mot de passe
         require_once BASE_PATH . '/includes/auth.php';
-        $msg = callProcedure("CALL sp_changer_mot_de_passe(?,?,@msg)", [$userId, $hash]);
-        
+        $msg = callProcedure('CALL sp_changer_mot_de_passe(?,?,@msg)', [$userId, $hash]);
+
         if ($msg === 'OK') {
             // Marquer le token comme utilisé
-            $pdo->prepare("UPDATE password_resets SET used = 1 WHERE token = ?")->execute([$token]);
+            $pdo->prepare('UPDATE password_resets SET used = 1 WHERE token = ?')->execute([$token]);
             $message = 'Mot de passe changé avec succès !';
         } else {
             $error = $msg;

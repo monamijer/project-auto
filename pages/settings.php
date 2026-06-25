@@ -22,7 +22,7 @@ $rolesLabels = [
     'secretaire' => 'Secrétaire',
     'caissier' => 'Caissier',
     'moniteur' => 'Moniteur',
-    'stagiaire' => 'Stagiaire (lecture seule)'
+    'stagiaire' => 'Stagiaire (lecture seule)',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_compte') {
@@ -124,18 +124,20 @@ if (isset($_GET['delete_compte'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_config') {
     requirePermission('voir_parametres');
     foreach ($_POST['config'] ?? [] as $key => $value) {
-        $pdo->prepare("INSERT INTO config_systeme (cle, valeur) VALUES (?, ?) ON DUPLICATE KEY UPDATE valeur = ?")->execute([$key, trim($value), trim($value)]);
+        $pdo->prepare('INSERT INTO config_systeme (cle, valeur) VALUES (?, ?) ON DUPLICATE KEY UPDATE valeur = ?')->execute([$key, trim($value), trim($value)]);
     }
     $message = 'Configuration enregistrée !';
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'purger_journal') {
     requirePermission('gestion_comptes');
-    $pdo->exec("DELETE t1 FROM journal_connexions t1 INNER JOIN journal_connexions t2 WHERE t1.id > t2.id AND t1.utilisateur = t2.utilisateur AND ABS(TIMESTAMPDIFF(SECOND, t1.heure_connexion, t2.heure_connexion)) < 60");
-    $pdo->exec("DELETE FROM journal_connexions WHERE heure_connexion < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $pdo->exec(
+        'DELETE t1 FROM journal_connexions t1 INNER JOIN journal_connexions t2 WHERE t1.id > t2.id AND t1.utilisateur = t2.utilisateur AND ABS(TIMESTAMPDIFF(SECOND, t1.heure_connexion, t2.heure_connexion)) < 60'
+    );
+    $pdo->exec('DELETE FROM journal_connexions WHERE heure_connexion < DATE_SUB(NOW(), INTERVAL 30 DAY)');
     $message = 'Journal purgé avec succès !';
 }
 
-$comptes = $pdo->query("SELECT v.*, e.tentatives_echouees, e.verrouille_jusqua FROM v_comptes v JOIN expirations_utilisateurs e ON e.id = v.id ORDER BY v.utilisateur")->fetchAll();
+$comptes = $pdo->query('SELECT v.*, e.tentatives_echouees, e.verrouille_jusqua FROM v_comptes v JOIN expirations_utilisateurs e ON e.id = v.id ORDER BY v.utilisateur')->fetchAll();
 $activites = $pdo->query('SELECT * FROM v_journal_activites')->fetchAll();
 $journal = $pdo->query('SELECT * FROM v_journal')->fetchAll();
 $sysInfo = $pdo->query('SELECT * FROM v_sys_info')->fetch();
@@ -152,8 +154,12 @@ include BASE_PATH . '/includes/header.php';
     <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">Zone Admin</span>
 </div>
 
-<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars($message) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
-<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
+    $message
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger alert-dismissible fade show d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars(
+    $error
+) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
 
 <!-- Comptes -->
 <div class="card shadow-sm border-0 mb-4">
@@ -169,6 +175,7 @@ include BASE_PATH . '/includes/header.php';
                 </thead>
                 <tbody>
                 <?php foreach ($comptes as $c):
+
                     $badgeColor = match ($c['statut_reel']) {
                         'actif' => 'bg-success bg-opacity-10 text-success',
                         'expire_bientot' => 'bg-warning bg-opacity-10 text-warning',
@@ -183,7 +190,7 @@ include BASE_PATH . '/includes/header.php';
                     };
                     $roleLabel = $rolesLabels[$c['role']] ?? $c['role'];
                     $estVerrouille = $c['verrouille_jusqua'] && strtotime($c['verrouille_jusqua']) > time();
-                ?>
+                    ?>
                 <tr class="<?= $estVerrouille ? 'table-warning' : '' ?>">
                     <td class="ps-3">
                         <strong><?= htmlspecialchars($c['utilisateur']) ?></strong>
@@ -200,11 +207,15 @@ include BASE_PATH . '/includes/header.php';
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editCompteModal-<?= $c['id'] ?>" title="Modifier"><i class="bi bi-pencil"></i></button>
                             <?php if (in_array($c['statut_reel'], ['expiré', 'expire_bientot'])): ?>
-                            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renewModal-<?= $c['id'] ?>" title="Renouveler"><i class="bi bi-arrow-clockwise"></i></button>
+                            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#renewModal-<?= $c[
+                                'id'
+                            ] ?>" title="Renouveler"><i class="bi bi-arrow-clockwise"></i></button>
                             <?php endif; ?>
                             <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#mdpModal-<?= $c['id'] ?>" title="Mot de passe"><i class="bi bi-key"></i></button>
                             <?php if ($estVerrouille): ?>
-                            <a href="?deverrouiller=<?= $c['id'] ?>" class="btn btn-outline-dark" title="Déverrouiller" onclick="return confirm('Déverrouiller ce compte ?')"><i class="bi bi-unlock-fill"></i></a>
+                            <a href="?deverrouiller=<?= $c[
+                                'id'
+                            ] ?>" class="btn btn-outline-dark" title="Déverrouiller" onclick="return confirm('Déverrouiller ce compte ?')"><i class="bi bi-unlock-fill"></i></a>
                             <?php endif; ?>
                             <?php if ($c['id'] != $_SESSION['user_id']): ?>
                                 <?php if ($c['statut'] === 'suspendu'): ?>
@@ -220,7 +231,9 @@ include BASE_PATH . '/includes/header.php';
 
                 <!-- Modal édition -->
                 <div class="modal fade" id="editCompteModal-<?= $c['id'] ?>" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-                    <div class="modal-header"><h5 class="modal-title">Modifier : <?= htmlspecialchars($c['utilisateur']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title">Modifier : <?= htmlspecialchars(
+                        $c['utilisateur']
+                    ) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="edit_compte"><input type="hidden" name="id" value="<?= $c['id'] ?>">
                         <div class="mb-3"><label class="form-label">Rôle</label><select name="role" class="form-select">
@@ -228,27 +241,42 @@ include BASE_PATH . '/includes/header.php';
                             <option value="<?= $role ?>" <?= $c['role'] === $role ? 'selected' : '' ?>><?= $rolesLabels[$role] ?></option>
                             <?php endforeach; ?>
                         </select></div>
-                        <div class="mb-3"><label class="form-label">Date d'expiration</label><input type="datetime-local" name="date_expiration" class="form-control" value="<?= str_replace(' ', 'T', $c['date_expiration']) ?>" required></div>
-                        <div class="mb-3"><label class="form-label">Statut manuel</label><select name="statut" class="form-select"><option value="actif" <?= $c['statut'] === 'actif' ? 'selected' : '' ?>>Actif</option><option value="suspendu" <?= $c['statut'] === 'suspendu' ? 'selected' : '' ?>>Suspendu</option></select></div>
-                        <div class="mb-3"><label class="form-label">Commentaire</label><textarea name="commentaire" class="form-control" rows="2"><?= htmlspecialchars($c['commentaire'] ?? '') ?></textarea></div>
+                        <div class="mb-3"><label class="form-label">Date d'expiration</label><input type="datetime-local" name="date_expiration" class="form-control" value="<?= str_replace(
+                            ' ',
+                            'T',
+                            $c['date_expiration']
+                        ) ?>" required></div>
+                        <div class="mb-3"><label class="form-label">Statut manuel</label><select name="statut" class="form-select"><option value="actif" <?= $c['statut'] === 'actif'
+                            ? 'selected'
+                            : '' ?>>Actif</option><option value="suspendu" <?= $c['statut'] === 'suspendu' ? 'selected' : '' ?>>Suspendu</option></select></div>
+                        <div class="mb-3"><label class="form-label">Commentaire</label><textarea name="commentaire" class="form-control" rows="2"><?= htmlspecialchars(
+                            $c['commentaire'] ?? ''
+                        ) ?></textarea></div>
                     </div>
                     <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
                 </form></div></div></div>
 
                 <!-- Modal renouveler -->
                 <div class="modal fade" id="renewModal-<?= $c['id'] ?>" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-                    <div class="modal-header"><h5 class="modal-title">Renouveler : <?= htmlspecialchars($c['utilisateur']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title">Renouveler : <?= htmlspecialchars(
+                        $c['utilisateur']
+                    ) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="renouveler"><input type="hidden" name="id" value="<?= $c['id'] ?>">
                         <div class="alert alert-info py-2">Le compte sera remis à <strong>Actif</strong>.</div>
-                        <div class="mb-3"><label class="form-label">Nouvelle expiration</label><input type="datetime-local" name="nouvelle_expiration" class="form-control" value="<?= date('Y-m-d\TH:i', strtotime('+1 year')) ?>" required></div>
+                        <div class="mb-3"><label class="form-label">Nouvelle expiration</label><input type="datetime-local" name="nouvelle_expiration" class="form-control" value="<?= date(
+                            'Y-m-d\TH:i',
+                            strtotime('+1 year')
+                        ) ?>" required></div>
                     </div>
                     <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-success">Renouveler</button></div>
                 </form></div></div></div>
 
                 <!-- Modal mot de passe -->
                 <div class="modal fade" id="mdpModal-<?= $c['id'] ?>" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-                    <div class="modal-header"><h5 class="modal-title">Mot de passe : <?= htmlspecialchars($c['utilisateur']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title">Mot de passe : <?= htmlspecialchars(
+                        $c['utilisateur']
+                    ) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="changer_mdp"><input type="hidden" name="id" value="<?= $c['id'] ?>">
                         <div class="mb-3"><label class="form-label">Nouveau mot de passe</label><input type="password" name="nouveau_mdp" class="form-control" minlength="6" required></div>
@@ -259,7 +287,9 @@ include BASE_PATH . '/includes/header.php';
 
                 <!-- Modal bloquer -->
                 <div class="modal fade" id="blockModal-<?= $c['id'] ?>" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-                    <div class="modal-header"><h5 class="modal-title text-danger">Bloquer : <?= htmlspecialchars($c['utilisateur']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title text-danger">Bloquer : <?= htmlspecialchars(
+                        $c['utilisateur']
+                    ) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" name="action" value="bloquer"><input type="hidden" name="id" value="<?= $c['id'] ?>">
                         <div class="alert alert-warning py-2">Cet utilisateur ne pourra plus se connecter.</div>
@@ -267,7 +297,8 @@ include BASE_PATH . '/includes/header.php';
                     </div>
                     <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-dark">Bloquer</button></div>
                 </form></div></div></div>
-                <?php endforeach; ?>
+                <?php
+                endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -292,7 +323,11 @@ include BASE_PATH . '/includes/header.php';
                 <tr>
                     <td class="ps-3"><?= htmlspecialchars($j['utilisateur']) ?></td>
                     <td><small><?= htmlspecialchars($j['heure_connexion']) ?></small></td>
-                    <td><span class="badge <?= $j['statut'] === 'AUTORISÉE' ? 'bg-success bg-opacity-10 text-success' : ($j['statut'] === 'REFUSÉE' ? 'bg-danger bg-opacity-10 text-danger' : 'bg-secondary bg-opacity-10 text-secondary') ?>"><?= htmlspecialchars($j['statut']) ?></span></td>
+                    <td><span class="badge <?= $j['statut'] === 'AUTORISÉE'
+                        ? 'bg-success bg-opacity-10 text-success'
+                        : ($j['statut'] === 'REFUSÉE'
+                            ? 'bg-danger bg-opacity-10 text-danger'
+                            : 'bg-secondary bg-opacity-10 text-secondary') ?>"><?= htmlspecialchars($j['statut']) ?></span></td>
                     <td><small><?= htmlspecialchars($j['message'] ?? '') ?></small></td>
                 </tr>
                 <?php endforeach; ?>
@@ -328,7 +363,8 @@ include BASE_PATH . '/includes/header.php';
                     <td><?= htmlspecialchars($a['module']) ?> <?= $a['element_id'] ? '#' . $a['element_id'] : '' ?></td>
                     <td><small class="text-muted"><?= htmlspecialchars($a['details'] ?? '') ?></small></td>
                 </tr>
-                <?php endforeach; ?>
+                <?php
+                endforeach; ?>
                 <?php if (empty($activites)): ?>
                 <tr><td colspan="5" class="text-center text-muted py-3">Aucune activité enregistrée.</td></tr>
                 <?php endif; ?>
@@ -344,8 +380,12 @@ include BASE_PATH . '/includes/header.php';
     <div class="card-body">
         <div class="row g-3 mb-3">
             <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Élèves</small><strong class="fs-5"><?= $sysInfo['nb_eleves'] ?></strong></div></div>
-            <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Moniteurs</small><strong class="fs-5"><?= $sysInfo['nb_moniteurs'] ?></strong></div></div>
-            <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Véhicules</small><strong class="fs-5"><?= $sysInfo['nb_vehicules'] ?></strong></div></div>
+            <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Moniteurs</small><strong class="fs-5"><?= $sysInfo[
+                'nb_moniteurs'
+            ] ?></strong></div></div>
+            <div class="col-md-4"><div class="p-3 bg-light rounded-3 text-center"><small class="text-muted d-block">Véhicules</small><strong class="fs-5"><?= $sysInfo[
+                'nb_vehicules'
+            ] ?></strong></div></div>
         </div>
         <div class="d-flex justify-content-between align-items-center">
             <small class="text-muted">PHP <?= phpversion() ?> · Serveur <?= date('Y-m-d H:i:s') ?></small>
@@ -363,12 +403,13 @@ include BASE_PATH . '/includes/header.php';
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save_config">
             <?php
-            $configFields = ['nom_ecole'=>'Nom de l\'école', 'telephone'=>'Téléphone', 'email_ecole'=>'Email', 'adresse'=>'Adresse', 'devise'=>'Devise'];
+            $configFields = ['nom_ecole' => 'Nom de l\'école', 'telephone' => 'Téléphone', 'email_ecole' => 'Email', 'adresse' => 'Adresse', 'devise' => 'Devise'];
             foreach ($configFields as $key => $label):
-                $val = getConfig($key);
-            ?>
+                $val = getConfig($key); ?>
             <div class="col-md-6"><label class="form-label"><?= $label ?></label><input type="text" name="config[<?= $key ?>]" class="form-control" value="<?= htmlspecialchars($val) ?>"></div>
-            <?php endforeach; ?>
+            <?php
+            endforeach;
+            ?>
             <div class="col-12"><button type="submit" class="btn btn-primary">Enregistrer la configuration</button></div>
         </form>
     </div>
@@ -386,7 +427,10 @@ include BASE_PATH . '/includes/header.php';
             <option value="<?= $role ?>" <?= $role === 'stagiaire' ? 'selected' : '' ?>><?= $rolesLabels[$role] ?></option>
             <?php endforeach; ?>
         </select></div>
-        <div class="mb-3"><label class="form-label">Expiration</label><input type="datetime-local" name="date_expiration" class="form-control" value="<?= date('Y-m-d\TH:i', strtotime('+1 year')) ?>" required></div>
+        <div class="mb-3"><label class="form-label">Expiration</label><input type="datetime-local" name="date_expiration" class="form-control" value="<?= date(
+            'Y-m-d\TH:i',
+            strtotime('+1 year')
+        ) ?>" required></div>
         <div class="mb-3"><label class="form-label">Statut</label><select name="statut" class="form-select"><option value="actif">Actif</option><option value="suspendu">Suspendu</option></select></div>
         <div class="mb-3"><label class="form-label">Commentaire</label><textarea name="commentaire" class="form-control" rows="2"></textarea></div>
     </div>

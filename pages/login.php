@@ -16,9 +16,9 @@ if (isset($_SESSION['user_id'])) {
     exit();
 }
 
-$error   = '';
-$doLog   = false;
-$logStatut  = 'REFUSÉE';
+$error = '';
+$doLog = false;
+$logStatut = 'REFUSÉE';
 $logMessage = '';
 
 if (isset($_GET['expired'])) {
@@ -41,54 +41,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lockStmt->execute([$username]);
     $lockRow = $lockStmt->fetch();
 
-    if ($lockRow && $lockRow['verrouille_jusqua'] &&
-        strtotime($lockRow['verrouille_jusqua']) > time()) {
+    if ($lockRow && $lockRow['verrouille_jusqua'] && strtotime($lockRow['verrouille_jusqua']) > time()) {
         $minutes = ceil((strtotime($lockRow['verrouille_jusqua']) - time()) / 60);
-        $error = "Compte verrouillé après trop d'échecs. "
-               . "Réessayez dans {$minutes} minute(s) ou contactez un administrateur.";
-
+        $error = "Compte verrouillé après trop d'échecs. " . "Réessayez dans {$minutes} minute(s) ou contactez un administrateur.";
     } else {
         // ── 2. Récupérer le compte via sp_connexion (sans INSERT journal) ──
         try {
-            $pdo->prepare("CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)")
-                ->execute([$username]);
-            $row = $pdo->query("SELECT @p_id AS id, @p_role AS role,
-                                       @p_hash AS hash, @p_statut AS statut")->fetch();
+            $pdo->prepare('CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)')->execute([$username]);
+            $row = $pdo
+                ->query(
+                    "SELECT @p_id AS id, @p_role AS role,
+                                       @p_hash AS hash, @p_statut AS statut"
+                )
+                ->fetch();
         } catch (PDOException $e) {
             $error = 'Erreur système. Contactez l\'administrateur.';
-            $row   = null;
+            $row = null;
         }
 
         if ($row && $row['id']) {
             if ($row['statut'] !== 'actif') {
-                $error      = 'Compte ' . htmlspecialchars($row['statut'])
-                            . '. Contactez un administrateur.';
-                $doLog      = true;
+                $error = 'Compte ' . htmlspecialchars($row['statut']) . '. Contactez un administrateur.';
+                $doLog = true;
                 $logMessage = 'Tentative sur compte ' . $row['statut'];
             } elseif (password_verify($password, $row['hash'])) {
                 // ── CONNEXION RÉUSSIE ──────────────────────────────────────
-                callProcedure("CALL sp_reset_tentatives(?,@msg)", [$username]);
+                callProcedure('CALL sp_reset_tentatives(?,@msg)', [$username]);
 
-                $_SESSION['user_id']       = $row['id'];
-                $_SESSION['username']      = $username;
-                $_SESSION['role']          = $row['role'];
+                $_SESSION['user_id'] = $row['id'];
+                $_SESSION['username'] = $username;
+                $_SESSION['role'] = $row['role'];
                 $_SESSION['last_activity'] = time();
 
-                callProcedure("CALL sp_journaliser(?,?,?,@msg)",
-                    [$username, 'AUTORISÉE', 'Connexion réussie']);
+                callProcedure('CALL sp_journaliser(?,?,?,@msg)', [$username, 'AUTORISÉE', 'Connexion réussie']);
 
                 header('Location: ' . BASE_URL . '/index.php');
                 exit();
             } else {
                 // ── MOT DE PASSE INCORRECT ─────────────────────────────────
-                callProcedure("CALL sp_incrementer_tentative(?,@msg)", [$username]);
-                $error      = 'Mot de passe incorrect.';
-                $doLog      = true;
+                callProcedure('CALL sp_incrementer_tentative(?,@msg)', [$username]);
+                $error = 'Mot de passe incorrect.';
+                $doLog = true;
                 $logMessage = 'Mot de passe incorrect';
 
                 $lockStmt->execute([$username]);
                 $upd = $lockStmt->fetch();
-                $restantes = max(0, 5 - (int)($upd['tentatives_echouees'] ?? 0));
+                $restantes = max(0, 5 - (int) ($upd['tentatives_echouees'] ?? 0));
                 if ($restantes > 0) {
                     $error .= " ($restantes tentative(s) restante(s) avant verrouillage)";
                 }
@@ -98,8 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($doLog) {
-            callProcedure("CALL sp_journaliser(?,?,?,@msg)",
-                [$username, 'REFUSÉE', $logMessage]);
+            callProcedure('CALL sp_journaliser(?,?,?,@msg)', [$username, 'REFUSÉE', $logMessage]);
         }
     }
 }

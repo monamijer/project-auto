@@ -49,27 +49,27 @@ function isAdmin(): bool
 
 function getRoleLabel(string $role = ''): string
 {
-    return match($role ?: ($_SESSION['role'] ?? '')) {
-        'admin'     => 'Administrateur',
+    return match ($role ?: $_SESSION['role'] ?? '') {
+        'admin' => 'Administrateur',
         'directeur' => 'Directeur',
-        'secretaire'=> 'Secrétaire',
-        'caissier'  => 'Caissier',
-        'moniteur'  => 'Moniteur',
+        'secretaire' => 'Secrétaire',
+        'caissier' => 'Caissier',
+        'moniteur' => 'Moniteur',
         'stagiaire' => 'Stagiaire',
-        default     => 'Utilisateur',
+        default => 'Utilisateur',
     };
 }
 
 function getRoleBadgeClass(string $role = ''): string
 {
-    return match($role ?: ($_SESSION['role'] ?? '')) {
-        'admin'     => 'bg-danger',
+    return match ($role ?: $_SESSION['role'] ?? '') {
+        'admin' => 'bg-danger',
         'directeur' => 'bg-dark',
-        'secretaire'=> 'bg-info text-dark',
-        'caissier'  => 'bg-success',
-        'moniteur'  => 'bg-warning text-dark',
+        'secretaire' => 'bg-info text-dark',
+        'caissier' => 'bg-success',
+        'moniteur' => 'bg-warning text-dark',
         'stagiaire' => 'bg-secondary',
-        default     => 'bg-secondary',
+        default => 'bg-secondary',
     };
 }
 
@@ -77,12 +77,78 @@ function hasPermission(string $permission): bool
 {
     $role = $_SESSION['role'] ?? 'stagiaire';
     $permissions = [
-        'admin'      => ['crud_eleves'=>1,'crud_moniteurs'=>1,'crud_vehicules'=>1,'crud_lecons'=>1,'crud_paiements'=>1,'voir_parametres'=>1,'gestion_comptes'=>1,'gestion_documents'=>1,'export_donnees'=>1,'voir_chat'=>1],
-        'directeur'  => ['crud_eleves'=>1,'crud_moniteurs'=>1,'crud_vehicules'=>1,'crud_lecons'=>1,'crud_paiements'=>1,'voir_parametres'=>1,'gestion_comptes'=>0,'gestion_documents'=>1,'export_donnees'=>1,'voir_chat'=>1],
-        'secretaire' => ['crud_eleves'=>1,'crud_moniteurs'=>0,'crud_vehicules'=>0,'crud_lecons'=>1,'crud_paiements'=>1,'voir_parametres'=>0,'gestion_comptes'=>0,'gestion_documents'=>1,'export_donnees'=>0,'voir_chat'=>1],
-        'caissier'   => ['crud_eleves'=>0,'crud_moniteurs'=>0,'crud_vehicules'=>0,'crud_lecons'=>0,'crud_paiements'=>1,'voir_parametres'=>0,'gestion_comptes'=>0,'gestion_documents'=>0,'export_donnees'=>0,'voir_chat'=>1],
-        'moniteur'   => ['crud_eleves'=>0,'crud_moniteurs'=>0,'crud_vehicules'=>0,'crud_lecons'=>1,'crud_paiements'=>0,'voir_parametres'=>0,'gestion_comptes'=>0,'gestion_documents'=>0,'export_donnees'=>0,'voir_chat'=>1],
-        'stagiaire'  => ['crud_eleves'=>0,'crud_moniteurs'=>0,'crud_vehicules'=>0,'crud_lecons'=>0,'crud_paiements'=>0,'voir_parametres'=>0,'gestion_comptes'=>0,'gestion_documents'=>0,'export_donnees'=>0,'voir_chat'=>1],
+        'admin' => [
+            'crud_eleves' => 1,
+            'crud_moniteurs' => 1,
+            'crud_vehicules' => 1,
+            'crud_lecons' => 1,
+            'crud_paiements' => 1,
+            'voir_parametres' => 1,
+            'gestion_comptes' => 1,
+            'gestion_documents' => 1,
+            'export_donnees' => 1,
+            'voir_chat' => 1,
+        ],
+        'directeur' => [
+            'crud_eleves' => 1,
+            'crud_moniteurs' => 1,
+            'crud_vehicules' => 1,
+            'crud_lecons' => 1,
+            'crud_paiements' => 1,
+            'voir_parametres' => 1,
+            'gestion_comptes' => 0,
+            'gestion_documents' => 1,
+            'export_donnees' => 1,
+            'voir_chat' => 1,
+        ],
+        'secretaire' => [
+            'crud_eleves' => 1,
+            'crud_moniteurs' => 0,
+            'crud_vehicules' => 0,
+            'crud_lecons' => 1,
+            'crud_paiements' => 1,
+            'voir_parametres' => 0,
+            'gestion_comptes' => 0,
+            'gestion_documents' => 1,
+            'export_donnees' => 0,
+            'voir_chat' => 1,
+        ],
+        'caissier' => [
+            'crud_eleves' => 0,
+            'crud_moniteurs' => 0,
+            'crud_vehicules' => 0,
+            'crud_lecons' => 0,
+            'crud_paiements' => 1,
+            'voir_parametres' => 0,
+            'gestion_comptes' => 0,
+            'gestion_documents' => 0,
+            'export_donnees' => 0,
+            'voir_chat' => 1,
+        ],
+        'moniteur' => [
+            'crud_eleves' => 0,
+            'crud_moniteurs' => 0,
+            'crud_vehicules' => 0,
+            'crud_lecons' => 1,
+            'crud_paiements' => 0,
+            'voir_parametres' => 0,
+            'gestion_comptes' => 0,
+            'gestion_documents' => 0,
+            'export_donnees' => 0,
+            'voir_chat' => 1,
+        ],
+        'stagiaire' => [
+            'crud_eleves' => 0,
+            'crud_moniteurs' => 0,
+            'crud_vehicules' => 0,
+            'crud_lecons' => 0,
+            'crud_paiements' => 0,
+            'voir_parametres' => 0,
+            'gestion_comptes' => 0,
+            'gestion_documents' => 0,
+            'export_donnees' => 0,
+            'voir_chat' => 1,
+        ],
     ];
     return $permissions[$role][$permission] ?? false;
 }
@@ -91,7 +157,13 @@ function requirePermission(string $permission): void
 {
     if (!hasPermission($permission)) {
         http_response_code(403);
-        die('<div style="padding:40px;text-align:center;font-family:sans-serif;"><h2>🚫 Accès refusé</h2><p>Votre rôle (' . htmlspecialchars(getRoleLabel()) . ') ne permet pas cette action.</p><a href="' . BASE_URL . '/index.php">← Retour</a></div>');
+        die(
+            '<div style="padding:40px;text-align:center;font-family:sans-serif;"><h2>🚫 Accès refusé</h2><p>Votre rôle (' .
+                htmlspecialchars(getRoleLabel()) .
+                ') ne permet pas cette action.</p><a href="' .
+                BASE_URL .
+                '/index.php">← Retour</a></div>'
+        );
     }
 }
 
@@ -102,7 +174,7 @@ function callProcedure(string $sql, array $params = []): string
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $stmt->closeCursor();
-        $result = $pdo->query("SELECT @msg AS msg")->fetch();
+        $result = $pdo->query('SELECT @msg AS msg')->fetch();
         return $result['msg'] ?? 'OK';
     } catch (PDOException $e) {
         error_log('Procedure error: ' . $e->getMessage());
@@ -113,12 +185,12 @@ function callProcedure(string $sql, array $params = []): string
 function logActivity(string $action, string $module, ?int $elementId = null, string $details = ''): void
 {
     $user = $_SESSION['username'] ?? 'système';
-    callProcedure("CALL sp_journaliser_activite(?,?,?,?,?,@msg)", [$user, $action, $module, $elementId, $details]);
+    callProcedure('CALL sp_journaliser_activite(?,?,?,?,?,@msg)', [$user, $action, $module, $elementId, $details]);
 }
 
 function notifyAdmins(string $titre, string $message, string $lien = ''): void
 {
-    callProcedure("CALL sp_creer_notification(?,?,?,?,@msg)", ['all', $titre, $message, $lien]);
+    callProcedure('CALL sp_creer_notification(?,?,?,?,@msg)', ['all', $titre, $message, $lien]);
 }
 
 function getConfig(string $cle): string
@@ -127,7 +199,7 @@ function getConfig(string $cle): string
     static $config = null;
     if ($config === null) {
         try {
-            $config = $pdo->query("SELECT cle, valeur FROM config_systeme")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $config = $pdo->query('SELECT cle, valeur FROM config_systeme')->fetchAll(PDO::FETCH_KEY_PAIR);
         } catch (Exception $e) {
             $config = [];
         }

@@ -11,7 +11,7 @@ $step = 1; // 1 = formulaire email, 2 = email envoyé
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
     $email = trim($_POST['email']);
-    
+
     if (empty($email)) {
         $error = 'Veuillez entrer votre identifiant.';
     } else {
@@ -19,27 +19,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
         $stmt = $pdo->prepare("SELECT id, utilisateur FROM expirations_utilisateurs WHERE utilisateur = ? AND statut = 'actif'");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
-        
+
         if ($user) {
             // Générer un token
             $token = bin2hex(random_bytes(32));
             $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
-            
+
             // Supprimer les anciens tokens
-            $pdo->prepare("DELETE FROM password_resets WHERE utilisateur_id = ?")->execute([$user['id']]);
-            
+            $pdo->prepare('DELETE FROM password_resets WHERE utilisateur_id = ?')->execute([$user['id']]);
+
             // Insérer le nouveau token
-            $pdo->prepare("INSERT INTO password_resets (utilisateur_id, token, expires_at) VALUES (?, ?, ?)")
-                ->execute([$user['id'], $token, $expires]);
-            
+            $pdo->prepare('INSERT INTO password_resets (utilisateur_id, token, expires_at) VALUES (?, ?, ?)')->execute([$user['id'], $token, $expires]);
+
             // Lien de réinitialisation
             $resetLink = BASE_URL . '/pages/reset_password.php?token=' . $token;
-            
+
             // En production, envoyer par email. Pour le développement, on affiche le lien.
-            $message = 'Un lien de réinitialisation a été généré.<br><br>
+            $message =
+                'Un lien de réinitialisation a été généré.<br><br>
                 <strong>Lien de test (développement) :</strong><br>
-                <a href="' . htmlspecialchars($resetLink) . '">' . htmlspecialchars($resetLink) . '</a>';
-            
+                <a href="' .
+                htmlspecialchars($resetLink) .
+                '">' .
+                htmlspecialchars($resetLink) .
+                '</a>';
+
             $step = 2;
         } else {
             // Ne pas révéler si l'utilisateur existe ou non (sécurité)
