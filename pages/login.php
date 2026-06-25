@@ -17,12 +17,16 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $error   = '';
-$doLog   = false;   // on ne journalise que si on a vraiment tenté la connexion
+$doLog   = false;
 $logStatut  = 'REFUSÉE';
 $logMessage = '';
 
 if (isset($_GET['expired'])) {
     $error = 'Session expirée par inactivité. Veuillez vous reconnecter.';
+}
+
+if (isset($_GET['reset'])) {
+    $error = 'Mot de passe changé avec succès. Vous pouvez vous connecter.';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,8 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($lockRow && $lockRow['verrouille_jusqua'] &&
         strtotime($lockRow['verrouille_jusqua']) > time()) {
-        // Compte verrouillé : on affiche l'erreur mais on NE log PAS
-        // (évite le spam dans le journal pour kahozi_secretaire et autres)
         $minutes = ceil((strtotime($lockRow['verrouille_jusqua']) - time()) / 60);
         $error = "Compte verrouillé après trop d'échecs. "
                . "Réessayez dans {$minutes} minute(s) ou contactez un administrateur.";
@@ -59,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($row && $row['id']) {
             if ($row['statut'] !== 'actif') {
-                // Compte expiré / suspendu
                 $error      = 'Compte ' . htmlspecialchars($row['statut'])
                             . '. Contactez un administrateur.';
                 $doLog      = true;
@@ -85,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $doLog      = true;
                 $logMessage = 'Mot de passe incorrect';
 
-                // Lire les tentatives restantes pour l'affichage
                 $lockStmt->execute([$username]);
                 $upd = $lockStmt->fetch();
                 $restantes = max(0, 5 - (int)($upd['tentatives_echouees'] ?? 0));
@@ -94,12 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } else {
-            // Identifiant introuvable : NE PAS logger (évite de remplir le journal
-            // avec des tentatives d'identifiants inexistants / erreurs de frappe)
             $error = 'Identifiant introuvable.';
         }
 
-        // ── Journal : 1 seule entrée REFUSÉE si nécessaire ────────────────
         if ($doLog) {
             callProcedure("CALL sp_journaliser(?,?,?,@msg)",
                 [$username, 'REFUSÉE', $logMessage]);
@@ -128,6 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        background: #4f46e5; border-color: #4f46e5; font-weight: 500; }
         .btn-primary:hover { background: #4338ca; border-color: #4338ca; }
         .input-group-text { background: #fff; }
+        .forgot-link { color: #6b7280; text-decoration: none; font-size: 0.85rem; transition: color 0.15s; }
+        .forgot-link:hover { color: #4f46e5; }
     </style>
 </head>
 <body>
@@ -158,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            placeholder="Votre identifiant" required autofocus>
                 </div>
             </div>
-            <div class="mb-4">
+            <div class="mb-3">
                 <label class="form-label small fw-medium">Mot de passe</label>
                 <div class="input-group">
                     <span class="input-group-text border-end-0">
@@ -172,6 +171,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="bi bi-eye" id="eyeIcon"></i>
                     </button>
                 </div>
+            </div>
+            <div class="d-flex justify-content-end mb-3">
+                <a href="<?= BASE_URL ?>/pages/forgot_password.php" class="forgot-link">
+                    <i class="bi bi-question-circle me-1"></i>Mot de passe oublié ?
+                </a>
             </div>
             <button type="submit" class="btn btn-primary w-100">
                 <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
