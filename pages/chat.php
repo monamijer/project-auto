@@ -23,10 +23,10 @@ $username = $_SESSION['username'];
 
 function getPhotoUrl(int $uid): ?string
 {
-    foreach (['jpg','jpeg','png','webp'] as $ext) {
-        $p = BASE_PATH . '/uploads/photos/' . $uid . '.' . $ext;
+    foreach (['jpg','jpeg','png','webp','gif'] as $ext) {
+        $p = BASE_PATH . '/uploads/profiles/profile_' . $uid . '.' . $ext;
         if (file_exists($p)) {
-            return BASE_URL . '/uploads/photos/' . $uid . '.' . $ext . '?v=' . filemtime($p);
+            return BASE_URL . '/uploads/profiles/profile_' . $uid . '.' . $ext . '?v=' . filemtime($p);
         }
     }
     return null;
@@ -58,7 +58,8 @@ include BASE_PATH . '/includes/header.php';
 .nb{background:#ef4444;color:#fff;border-radius:10px;padding:2px 7px;font-size:.62rem;font-weight:700;min-width:20px;text-align:center;}
 /* ── Zone chat ── */
 .cm{flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0;}
-.ch{padding:.6rem 1rem;background:var(--wh);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:.7rem;flex-shrink:0;}
+.ch{padding:.6rem 1rem;background:var(--wh);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:.7rem;flex-shrink:0;cursor:pointer;}
+.ch:hover{background:#fafbfc;}
 .ch-av{width:38px;height:38px;border-radius:50%;flex-shrink:0;}
 .ch-av img,.ch-av .aph{width:100%;height:100%;border-radius:50%;object-fit:cover;}
 .ch-av .aph{background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem;}
@@ -598,7 +599,7 @@ function back() {
     if (pollTimer) clearInterval(pollTimer);
     document.getElementById('cl').classList.remove('hm');
     document.getElementById('cm').classList.add('hm');
-    document.getElementById('cm').innerHTML = '';
+    document.getElementById('cm').innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted"><div class="text-center"><i class="bi bi-chat-dots display-1 d-block mb-3 opacity-25"></i><p>Sélectionnez une conversation</p></div></div>';
 }
 
 async function load() {
@@ -624,9 +625,9 @@ async function poll() {
 }
 
 function avt(url, name, size) {
-    if (url) return `<img src="${url}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;">`;
+    if (url) return `<img src="${url}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;">`;
     const init = (name||'?')[0].toUpperCase();
-    return `<div class="aph" style="width:${size}px;height:${size}px;border-radius:50%;font-size:${Math.round(size*.35)}px;">${init}</div>`;
+    return `<div class="aph" style="width:${size}px;height:${size}px;border-radius:50%;font-size:${Math.round(size*.35)}px;flex-shrink:0;">${init}</div>`;
 }
 
 function msgHTML(m) {
@@ -639,7 +640,7 @@ function msgHTML(m) {
                   <i class="bi bi-file-earmark me-1"></i>
                   <a href="${BASE}/${m.file_path}" download style="color:inherit;">${esc(m.content||'Fichier')}</a></div>`;
     return `<div class="mr${me?' me':''}">
-        ${!me ? `<div class="m-av">${avt(m.photo_url,m.sender_name,26)}</div>` : ''}
+        ${!me ? `<div class="m-av">${avt(m.photo_url, m.sender_name, 26)}</div>` : ''}
         <div>
             ${!me ? `<div class="m-sender">${esc(m.sender_name||'')}</div>` : ''}
             <div class="mb">${body}<div class="m-time">${fmt(m.created_at)}</div></div>
@@ -663,8 +664,8 @@ function render(msgs, parts) {
             <i class="bi bi-camera-video-fill"></i>
         </button>`;
 
-    let h = `<div class="ch">
-        <button class="btn btn-sm btn-link text-dark p-0 btn-back me-1" onclick="back()"><i class="bi bi-arrow-left"></i></button>
+    let h = `<div class="ch" onclick="showProfile('${esc(pname)}','${pphoto}','${esc(prole)}')">
+        <button class="btn btn-sm btn-link text-dark p-0 btn-back me-1" onclick="event.stopPropagation();back()"><i class="bi bi-arrow-left"></i></button>
         <div class="ch-av">${avt(pphoto,pname,38)}</div>
         <div class="ch-info"><strong>${esc(pname)}</strong><small>${esc(prole)}</small></div>
         ${callBtns}
@@ -695,6 +696,24 @@ function render(msgs, parts) {
     document.getElementById('msgInput').addEventListener('input', () => {
         document.getElementById('sb').disabled = document.getElementById('msgInput').value.trim() === '' && !selectedFile;
     });
+}
+
+function showProfile(name, photo, role) {
+    const avatar = photo ? `<img src="${photo}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin:0 auto 1rem;display:block;">` 
+        : `<div class="aph" style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:2rem;margin:0 auto 1rem;">${(name||'?')[0].toUpperCase()}</div>`;
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);" onclick="this.parentElement.remove()"></div>
+        <div style="position:relative;background:#fff;border-radius:20px;padding:2rem;text-align:center;max-width:360px;width:90%;animation:popIn .2s ease;">
+            <button style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.2rem;cursor:pointer;" onclick="this.closest('div').parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+            ${avatar}
+            <h4>${esc(name)}</h4>
+            <p style="color:#9ca3af;">${esc(role)}</p>
+            <button class="btn btn-primary btn-sm" onclick="this.closest('div').parentElement.remove()">Fermer</button>
+        </div>`;
+    document.body.appendChild(modal);
 }
 
 function handleFile(e) {
@@ -736,9 +755,7 @@ async function sendMsg() {
 }
 
 function fmt(ts) { return new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
-function esc(t) {
-    const d = document.createElement('div'); d.textContent = t||''; return d.innerHTML;
-}
+function esc(t) { const d = document.createElement('div'); d.textContent = t||''; return d.innerHTML; }
 
 // ════════════════════════════════════════════════════════════════════════
 // INIT
