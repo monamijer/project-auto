@@ -124,6 +124,7 @@ include BASE_PATH . '/includes/header.php';
                 <thead class="table-light">
                     <tr>
                         <th class="ps-3">#ID</th>
+                        <th>Matricule</th>
                         <th>Nom complet</th>
                         <th>Nationalité</th>
                         <th>Contact</th>
@@ -139,7 +140,8 @@ include BASE_PATH . '/includes/header.php';
                 <?php foreach ($studentsPage as $row): ?>
                 <tr>
                     <td class="ps-3"><span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">#<?= $row['id'] ?></span></td>
-                    <td>
+                    <td><code class='small text-primary fw-medium'><?= htmlspecialchars($row['matricule'] ?? '—') ?></code></td>
+                        <td>
                         <div class="d-flex align-items-center">
                             <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
                                 <span class="text-primary fw-bold small"><?= strtoupper(substr($row['prenom'], 0, 1) . substr($row['nom'], 0, 1)) ?></span>
