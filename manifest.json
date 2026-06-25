@@ -1,0 +1,9 @@
+{
+  "name": "Auto École Pro",
+  "short_name": "AutoÉcole",
+  "start_url": "/project_auto/index.php",
+  "display": "standalone",
+  "background_color": "#f5f6fa",
+  "theme_color": "#4f46e5",
+  "icons": [{"src": "/project_auto/assets/images/icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "/project_auto/assets/images/icon-512.png", "sizes": "512x512", "type": "image/png"}]
+}
