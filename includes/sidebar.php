@@ -27,6 +27,21 @@ foreach (['jpg', 'jpeg', 'png', 'gif', 'webp'] as $ext) {
         break;
     }
 }
+
+// Messages non lus
+$unreadMessages = 0;
+try {
+    $unreadMessages = (int) $pdo->query("
+        SELECT COUNT(*) FROM conversation_participants cp 
+        JOIN messages m ON m.conversation_id = cp.conversation_id 
+        LEFT JOIN message_reads mr ON mr.message_id = m.id AND mr.utilisateur_id = cp.utilisateur_id
+        WHERE cp.utilisateur_id = {$_SESSION['user_id']} 
+        AND m.sender_id != {$_SESSION['user_id']} 
+        AND mr.id IS NULL AND m.deleted_at IS NULL
+    ") ->fetchColumn();
+} catch (Exception $e) {
+    $unreadMessages = 0;
+}
 ?>
 <nav class="sidebar" id="appSidebar">
 
@@ -89,8 +104,11 @@ foreach (['jpg', 'jpeg', 'png', 'gif', 'webp'] as $ext) {
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='chat.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/chat.php">
-                    <i class="bi bi-chat-dots me-2"></i>Messages
+                <a class="nav-link <?= $currentFile==='chat.php'?'active':'' ?> d-flex justify-content-between align-items-center" href="<?= BASE_URL ?>/pages/chat.php">
+                    <span><i class="bi bi-chat-dots me-2"></i>Messages</span>
+                    <?php if ($unreadMessages > 0): ?>
+                    <span class="badge bg-danger rounded-pill"><?= $unreadMessages ?></span>
+                    <?php endif; ?>
                 </a>
             </li>
             <?php if ($notifCount > 0 || isAdmin()): ?>
@@ -110,29 +128,21 @@ foreach (['jpg', 'jpeg', 'png', 'gif', 'webp'] as $ext) {
             <small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Gestion</small>
         </div>
         <ul class="nav flex-column px-2">
-            <!-- Élèves : visible par tous -->
             <?= navLink('students.php',    'bi-people',          'Élèves',       $currentFile) ?>
-            <!-- Moniteurs : admin, directeur, secrétaire -->
             <?php if (in_array($currentRole,['admin','directeur','secretaire'])): ?>
             <?= navLink('instructors.php', 'bi-person-badge',    'Moniteurs',    $currentFile) ?>
             <?php endif; ?>
-            <!-- Véhicules : admin, directeur -->
             <?php if (in_array($currentRole,['admin','directeur'])): ?>
             <?= navLink('vehicles.php',    'bi-car-front',       'Véhicules',    $currentFile) ?>
             <?php endif; ?>
-            <!-- Leçons -->
             <?php if (in_array($currentRole,['admin','directeur','secretaire','moniteur'])): ?>
             <?= navLink('lessons.php',     'bi-calendar-check',  'Leçons',       $currentFile) ?>
             <?php endif; ?>
-            <!-- Paiements -->
             <?php if (in_array($currentRole,['admin','directeur','secretaire','caissier'])): ?>
             <?= navLink('payments.php',    'bi-cash',            'Paiements',    $currentFile) ?>
             <?php endif; ?>
-            <!-- Inscriptions -->
             <?= navLink('enrollments.php', 'bi-journal-text',    'Inscriptions', $currentFile) ?>
-            <!-- Examens -->
             <?= navLink('exams.php',       'bi-clipboard-check', 'Examens',      $currentFile) ?>
-            <!-- Documents -->
             <?php if (hasPermission('gestion_documents')): ?>
             <?= navLink('documents.php',   'bi-file-earmark-arrow-up', 'Documents', $currentFile) ?>
             <?php endif; ?>
