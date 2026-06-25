@@ -1,18 +1,15 @@
 <?php
 /**
  * pages/actions/logout.php — Déconnexion
+ * Journalise via sp_journaliser() .
  */
 session_start();
 require_once __DIR__ . '/../../config/database.php';
+require_once BASE_PATH . '/includes/auth.php';
 
 if (isset($_SESSION['username'])) {
-    try {
-        $pdo->prepare(
-            "INSERT INTO journal_connexions (utilisateur, heure_connexion, statut, message)
-                       VALUES (?, NOW(), 'AUTORISÉE', 'Déconnexion')"
-        )->execute([$_SESSION['username']]);
-    } catch (PDOException $ignored) {
-    }
+    callProcedure("CALL sp_journaliser(?,?,?,@msg)",
+        [$_SESSION['username'], 'AUTORISÉE', 'Déconnexion']);
 }
 
 session_destroy();
