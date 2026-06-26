@@ -1,6 +1,6 @@
 <?php
 /**
- * pages/lessons.php — Leçons avec détection de conflits horaires
+ * pages/lessons.php — Leçons avec tri, filtres et archivage
  */
 session_start();
 require_once __DIR__ . '/../config/database.php';
@@ -12,22 +12,17 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add') {
     if (!verify_csrf()) {
-        $error = 'Session expirée, rechargez la page.';
+        $error = 'Session expirée.';
     } else {
         requirePermission('crud_lecons');
         $msg = callProcedure('CALL sp_planifier_lecon(?,?,?,?,@msg)', [(int) $_POST['student_id'], (int) $_POST['instructor_id'], (int) $_POST['vehicle_id'], $_POST['date_lecon']]);
-        if ($msg === 'OK') {
-            $message = 'Leçon planifiée !';
-            logActivity('AJOUT', 'lecons');
-        } else {
-            $error = $msg;
-        }
+        $msg === 'OK' ? ($message = 'Leçon planifiée !') : ($error = $msg);
     }
 }
 if (isset($_GET['complete'])) {
     requirePermission('crud_lecons');
     callProcedure('CALL sp_completer_lecon(?,@msg)', [(int) $_GET['complete']]);
-    $message = 'Leçon marquée effectuée !';
+    $message = 'Leçon effectuée !';
 }
 if (isset($_GET['cancel'])) {
     requirePermission('crud_lecons');
@@ -38,6 +33,15 @@ if (isset($_GET['delete'])) {
     requirePermission('crud_lecons');
     callProcedure('CALL sp_supprimer_lecon(?,@msg)', [(int) $_GET['delete']]);
     $message = 'Leçon supprimée.';
+}
+if (isset($_GET['archive']) && hasPermission('crud_lecons')) {
+    $sid = (int) $_GET['archive'];
+    $pdo->prepare("INSERT INTO archives (type_archive, nom_fichier, nb_enregistrements, periode_fin, cree_par) VALUES ('lecons', CONCAT('Leçon #', ?), 1, CURDATE(), ?)")->execute([
+        $sid,
+        $_SESSION['username'],
+    ]);
+    $pdo->prepare('DELETE FROM lecons WHERE id = ?')->execute([$sid]);
+    $message = 'Leçon archivée !';
 }
 
 $lessons = $pdo->query('SELECT * FROM v_lecons ORDER BY date_lecon DESC')->fetchAll();
@@ -83,7 +87,7 @@ include BASE_PATH . '/includes/header.php';
     <div class="col-md-4"><div class="input-group input-group-sm"><span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span><input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?= htmlspecialchars(
         $search
     ) ?>"></div></div>
-    <div class="col-md-3"><select name="filter" class="form-select form-select-sm"><option value="">Tous les statuts</option><option value="programmée" <?= $filter === 'programmée'
+    <div class="col-md-3"><select name="filter" class="form-select form-select-sm"><option value="">Tous</option><option value="programmée" <?= $filter === 'programmée'
         ? 'selected'
         : '' ?>>Programmées</option><option value="effectuée" <?= $filter === 'effectuée' ? 'selected' : '' ?>>Effectuées</option><option value="annulée" <?= $filter === 'annulée'
     ? 'selected'
@@ -97,7 +101,15 @@ include BASE_PATH . '/includes/header.php';
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"><h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Liste des leçons</h5><span class="badge bg-primary rounded-pill"><?= $total ?></span></div>
     <div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
-        <thead class="table-light"><tr><th class="ps-3">#ID</th><th>Date & Heure</th><th>Élève</th><th>Moniteur</th><th>Véhicule</th><th>Statut</th><th class="text-end pe-3">Actions</th></tr></thead>
+        <thead class="table-light"><tr>
+            <th class="ps-3 sortable">#ID</th>
+            <th class="sortable">Date</th>
+            <th class="sortable">Élève</th>
+            <th class="sortable">Moniteur</th>
+            <th>Véhicule</th>
+            <th class="sortable">Statut</th>
+            <th class="text-end pe-3">Actions</th>
+        </tr></thead>
         <tbody>
         <?php if (empty($lessonsPage)): ?><tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox display-4 d-block mb-2"></i>Aucune leçon</td></tr>
         <?php else:foreach ($lessonsPage as $row):
@@ -111,13 +123,16 @@ include BASE_PATH . '/includes/header.php';
             <td><span class="fw-medium"><?= htmlspecialchars($row['student_nom']) ?></span></td>
             <td><?= htmlspecialchars($row['instructor_nom']) ?></td><td><small><?= htmlspecialchars($row['vehicle_nom']) ?></small></td>
             <td><span class="badge <?= $badge ?>"><?= htmlspecialchars($row['statut']) ?></span></td>
-            <td class="text-end pe-3"><?php if (hasPermission('crud_lecons') && $row['statut'] === 'programmée'): ?><div class="btn-group btn-group-sm">
-                <a href="?complete=<?= $row[
-                    'id'
-                ] ?>&page=<?= $page ?>" class="btn btn-outline-success" onclick="return confirm('Marquer effectuée ?')" title="Effectuée"><i class="bi bi-check-lg"></i></a>
+            <td class="text-end pe-3"><div class="btn-group btn-group-sm">
+                <?php if (hasPermission('crud_lecons') && $row['statut'] === 'programmée'): ?>
+                <a href="?complete=<?= $row['id'] ?>&page=<?= $page ?>" class="btn btn-outline-success" onclick="return confirm('Effectuée ?')" title="Effectuée"><i class="bi bi-check-lg"></i></a>
                 <a href="?cancel=<?= $row['id'] ?>&page=<?= $page ?>" class="btn btn-outline-warning" onclick="return confirm('Annuler ?')" title="Annuler"><i class="bi bi-x-lg"></i></a>
+                <?php endif; ?>
+                <?php if (hasPermission('crud_lecons')): ?>
+                <a href="?archive=<?= $row['id'] ?>" class="btn btn-outline-secondary" onclick="return confirm('Archiver ?')" title="Archiver"><i class="bi bi-archive"></i></a>
                 <a href="?delete=<?= $row['id'] ?>&page=<?= $page ?>" class="btn btn-outline-danger" onclick="return confirm('Supprimer ?')" title="Supprimer"><i class="bi bi-trash"></i></a>
-            </div><?php endif; ?></td></tr>
+                <?php endif; ?>
+            </div></td></tr>
         <?php
             endforeach;endif; ?>
         </tbody>
@@ -137,10 +152,9 @@ include BASE_PATH . '/includes/header.php';
 
 <?php if (hasPermission('crud_lecons')): ?>
 <div class="modal fade" id="addModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
-    <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Planifier une leçon</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Planifier</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="add">
+        <?= csrf_field() ?><input type="hidden" name="action" value="add">
         <div class="mb-3"><label class="form-label">Élève</label><select name="student_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach (
             $students
             as $s

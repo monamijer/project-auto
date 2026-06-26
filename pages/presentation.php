@@ -7,7 +7,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 requireLogin();
 
-$stats = $pdo->query("SELECT * FROM v_dashboard_stats")->fetch();
+$stats = $pdo->query('SELECT * FROM v_dashboard_stats')->fetch();
 $pageTitle = 'À propos — Auto École Pro';
 include BASE_PATH . '/includes/header.php';
 ?>
@@ -29,13 +29,33 @@ include BASE_PATH . '/includes/header.php';
 </div>
 
 <div class="row g-3 mb-4">
-    <?php foreach([['Élèves','nb_eleves','people-fill','primary'],['Moniteurs','nb_moniteurs','person-badge-fill','success'],['Véhicules','nb_vehicules_dispos','car-front-fill','info'],['Recettes','total_recettes','cash-stack','warning']] as [$l,$k,$i,$c]): $v=$k==='total_recettes'?number_format($stats[$k],2).' $':($stats[$k]??0); ?>
+    <?php foreach (
+        [
+            ['Élèves', 'nb_eleves', 'people-fill', 'primary'],
+            ['Moniteurs', 'nb_moniteurs', 'person-badge-fill', 'success'],
+            ['Véhicules', 'nb_vehicules_dispos', 'car-front-fill', 'info'],
+            ['Recettes', 'total_recettes', 'cash-stack', 'warning'],
+        ]
+        as [$l, $k, $i, $c]
+    ):
+        $v = $k === 'total_recettes' ? number_format($stats[$k], 2) . ' $' : $stats[$k] ?? 0; ?>
     <div class="col-md-3"><div class="card border-0 shadow-sm text-center p-3"><i class="bi bi-<?= $i ?> text-<?= $c ?> fs-1 mb-2"></i><h2 class="fw-bold mb-0"><?= $v ?></h2><small class="text-muted"><?= $l ?></small></div></div>
-    <?php endforeach; ?>
+    <?php
+    endforeach; ?>
 </div>
 
 <div class="row g-4 mb-4">
-    <?php foreach([['bi-shield-lock','Sécurité','2FA, verrouillage, chiffrement bcrypt, CSRF','danger'],['bi-people','Utilisateurs','6 rôles avec permissions granulaires','primary'],['bi-database','Base de données','Procédures stockées + Views SQL, corbeille','success'],['bi-camera-video','Communication','Chat temps réel + appels WebRTC','info'],['bi-file-earmark-pdf','Rapports','PDF, Excel, graphiques Chart.js','warning'],['bi-phone','Mobile','Responsive + PWA installable','secondary']] as [$icon,$titre,$desc,$color]): ?>
+    <?php foreach (
+        [
+            ['bi-shield-lock', 'Sécurité', '2FA, verrouillage, chiffrement bcrypt, CSRF', 'danger'],
+            ['bi-people', 'Utilisateurs', '6 rôles avec permissions granulaires', 'primary'],
+            ['bi-database', 'Base de données', 'Procédures stockées + Views SQL, corbeille', 'success'],
+            ['bi-camera-video', 'Communication', 'Chat temps réel + appels WebRTC', 'info'],
+            ['bi-file-earmark-pdf', 'Rapports', 'PDF, Excel, graphiques Chart.js', 'warning'],
+            ['bi-phone', 'Mobile', 'Responsive + PWA installable', 'secondary'],
+        ]
+        as [$icon, $titre, $desc, $color]
+    ): ?>
     <div class="col-md-4"><div class="card border-0 shadow-sm h-100 p-3"><div class="d-flex align-items-center gap-3 mb-2"><div class="rounded-circle bg-<?= $color ?> bg-opacity-10 d-flex align-items-center justify-content-center" style="width:44px;height:44px;"><i class="bi <?= $icon ?> text-<?= $color ?> fs-5"></i></div><h6 class="fw-bold mb-0"><?= $titre ?></h6></div><p class="text-muted small mb-0"><?= $desc ?></p></div></div>
     <?php endforeach; ?>
 </div>

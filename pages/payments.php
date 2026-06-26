@@ -1,6 +1,6 @@
 <?php
 /**
- * pages/payments.php — Paiements
+ * pages/payments.php — Paiements avec tri et archivage
  * SELECT → v_paiements, v_stats_financieres, v_eleves_select (Views SQL)
  * CRUD → sp_enregistrer_paiement(), sp_supprimer_paiement()
  */
@@ -18,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add')
     if ($msg === 'OK') {
         $message = 'Paiement enregistré !';
         logActivity('AJOUT', 'paiements', null, $_POST['montant'] . ' $');
-        notifyAdmins('Nouveau paiement', 'Un paiement de ' . $_POST['montant'] . '$ a été enregistré.', '/pages/payments.php');
     } else {
         $error = $msg;
     }
@@ -26,12 +25,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add')
 if (isset($_GET['delete'])) {
     requirePermission('crud_paiements');
     $msg = callProcedure('CALL sp_supprimer_paiement(?,@msg)', [(int) $_GET['delete']]);
-    if ($msg === 'OK') {
-        $message = 'Paiement supprimé.';
-        logActivity('SUPPRESSION', 'paiements', (int) $_GET['delete']);
-    } else {
-        $error = $msg;
-    }
+    $msg === 'OK' ? ($message = 'Paiement supprimé.') : ($error = $msg);
+}
+if (isset($_GET['archive']) && hasPermission('crud_paiements')) {
+    $sid = (int) $_GET['archive'];
+    $pdo->prepare("INSERT INTO archives (type_archive, nom_fichier, nb_enregistrements, periode_fin, cree_par) VALUES ('paiements', CONCAT('Paiement #', ?), 1, CURDATE(), ?)")->execute([
+        $sid,
+        $_SESSION['username'],
+    ]);
+    $pdo->prepare('DELETE FROM paiement WHERE id = ?')->execute([$sid]);
+    $message = 'Paiement archivé !';
 }
 
 $payments = $pdo->query('SELECT * FROM v_paiements ORDER BY date_paiement DESC')->fetchAll();
@@ -60,9 +63,9 @@ include BASE_PATH . '/includes/header.php';
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <div><h1 class="h3 mb-1"><i class="bi bi-cash-stack me-2 text-primary"></i>Paiements</h1><p class="text-muted mb-0"><?= $total ?> transaction(s)</p></div>
-    <?php if (hasPermission('crud_paiements')): ?>
-    <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addModal"><i class="bi bi-plus-lg me-1"></i>Enregistrer</button>
-    <?php endif; ?>
+    <?php if (
+        hasPermission('crud_paiements')
+    ): ?><button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addModal"><i class="bi bi-plus-lg me-1"></i>Enregistrer</button><?php endif; ?>
 </div>
 
 <?php if ($message): ?><div class="alert alert-success alert-dismissible fade show d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><?= htmlspecialchars(
@@ -100,7 +103,15 @@ include BASE_PATH . '/includes/header.php';
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3"><h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Historique des paiements</h5><span class="badge bg-primary rounded-pill"><?= $total ?></span></div>
     <div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
-        <thead class="table-light"><tr><th class="ps-3">#ID</th><th>Date</th><th>Élève</th><th>Formation</th><th>Montant</th><th>Mode</th><th class="text-end pe-3">Actions</th></tr></thead>
+        <thead class="table-light"><tr>
+            <th class="ps-3 sortable">#ID</th>
+            <th class="sortable">Date</th>
+            <th class="sortable">Élève</th>
+            <th class="sortable">Formation</th>
+            <th class="sortable">Montant</th>
+            <th>Mode</th>
+            <th class="text-end pe-3">Actions</th>
+        </tr></thead>
         <tbody>
         <?php if (empty($paymentsPage)): ?><tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox display-4 d-block mb-2"></i>Aucun paiement</td></tr>
         <?php else:foreach ($paymentsPage as $row): ?>
@@ -114,6 +125,7 @@ include BASE_PATH . '/includes/header.php';
             <td class="text-end pe-3"><div class="btn-group btn-group-sm">
                 <a href="<?= BASE_URL ?>/pages/recu_paiement.php?id=<?= $row['id'] ?>" class="btn btn-outline-secondary" title="Reçu" target="_blank"><i class="bi bi-receipt"></i></a>
                 <?php if (hasPermission('crud_paiements')): ?>
+                <a href="?archive=<?= $row['id'] ?>" class="btn btn-outline-secondary" onclick="return confirm('Archiver ?')" title="Archiver"><i class="bi bi-archive"></i></a>
                 <a href="?delete=<?= $row['id'] ?>&page=<?= $page ?>" class="btn btn-outline-danger" onclick="return confirm('Supprimer ?')" title="Supprimer"><i class="bi bi-trash"></i></a>
                 <?php endif; ?>
             </div></td>
@@ -121,23 +133,20 @@ include BASE_PATH . '/includes/header.php';
         <?php endforeach;endif; ?>
         </tbody>
     </table></div></div>
-    <?php if ($totalPages > 1): ?>
-    <div class="card-footer bg-white"><nav><ul class="pagination pagination-sm justify-content-center mb-0">
+    <?php if ($totalPages > 1): ?><div class="card-footer bg-white"><nav><ul class="pagination pagination-sm justify-content-center mb-0">
         <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">Précédent</a></li>
         <?php for ($i = 1; $i <= $totalPages; $i++): ?><li class="page-item <?= $i === $page ? 'active' : '' ?>"><a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode(
     $search
 ) ?>"><?= $i ?></a></li><?php endfor; ?>
         <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Suivant</a></li>
-    </ul></nav></div>
-    <?php endif; ?>
+    </ul></nav></div><?php endif; ?>
 </div>
 
 <?php if (hasPermission('crud_paiements')): ?>
 <div class="modal fade" id="addModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST">
     <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-cash-stack me-2"></i>Enregistrer un paiement</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="add">
+        <?= csrf_field() ?><input type="hidden" name="action" value="add">
         <div class="mb-3"><label class="form-label">Élève</label><select name="student_id" class="form-select" required><option value="">-- Choisir --</option><?php foreach (
             $students
             as $s

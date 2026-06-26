@@ -4,7 +4,9 @@
  */
 require_once BASE_PATH . '/includes/auth.php';
 
-if (empty($pageTitle)) { $pageTitle = 'Auto École Pro'; }
+if (empty($pageTitle)) {
+    $pageTitle = 'Auto École Pro';
+}
 
 header('X-Frame-Options: SAMEORIGIN');
 header('X-Content-Type-Options: nosniff');

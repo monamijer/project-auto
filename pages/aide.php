@@ -20,7 +20,21 @@ include BASE_PATH . '/includes/header.php';
     <div class="card border-0 shadow-sm sticky-top" style="top:70px;">
         <div class="card-header bg-white py-3"><h6 class="mb-0">Sections</h6></div>
         <div class="list-group list-group-flush">
-            <?php foreach([['#debut','Démarrage'],['#roles','Rôles'],['#eleves','Élèves'],['#lecons','Leçons'],['#paiements','Paiements'],['#docs','Documents'],['#rapports','Rapports'],['#securite','Sécurité'],['#appels','Appels'],['#backup','Sauvegarde']] as [$id,$label]): ?>
+            <?php foreach (
+                [
+                    ['#debut', 'Démarrage'],
+                    ['#roles', 'Rôles'],
+                    ['#eleves', 'Élèves'],
+                    ['#lecons', 'Leçons'],
+                    ['#paiements', 'Paiements'],
+                    ['#docs', 'Documents'],
+                    ['#rapports', 'Rapports'],
+                    ['#securite', 'Sécurité'],
+                    ['#appels', 'Appels'],
+                    ['#backup', 'Sauvegarde'],
+                ]
+                as [$id, $label]
+            ): ?>
             <a href="<?= $id ?>" class="list-group-item list-group-item-action py-2 small"><?= $label ?></a>
             <?php endforeach; ?>
         </div>
@@ -36,7 +50,17 @@ include BASE_PATH . '/includes/header.php';
 </div></div>
 
 <div id="roles" class="card border-0 shadow-sm mb-4"><div class="card-header bg-white py-3"><h5 class="mb-0">👥 Rôles</h5></div><div class="card-body p-0"><table class="table table-hover mb-0"><thead class="table-light"><tr><th class="ps-3">Rôle</th><th>Permissions</th></tr></thead><tbody>
-    <?php foreach([['🔴 Admin','Tout'],['🟤 Directeur','Sauf comptes'],['🔵 Secrétaire','Élèves, leçons, paiements, docs'],['🟢 Caissier','Paiements'],['🟡 Moniteur','Leçons'],['⚫ Stagiaire','Lecture seule']] as [$r,$p]): ?>
+    <?php foreach (
+        [
+            ['🔴 Admin', 'Tout'],
+            ['🟤 Directeur', 'Sauf comptes'],
+            ['🔵 Secrétaire', 'Élèves, leçons, paiements, docs'],
+            ['🟢 Caissier', 'Paiements'],
+            ['🟡 Moniteur', 'Leçons'],
+            ['⚫ Stagiaire', 'Lecture seule'],
+        ]
+        as [$r, $p]
+    ): ?>
     <tr><td class="ps-3 fw-medium"><?= $r ?></td><td class="text-muted small"><?= $p ?></td></tr>
     <?php endforeach; ?>
 </tbody></table></div></div>

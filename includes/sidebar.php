@@ -25,10 +25,12 @@ foreach (['jpg', 'jpeg', 'png', 'gif', 'webp'] as $ext) {
 // Messages non lus
 $unreadMessages = 0;
 try {
-    $stmt = $pdo->prepare("SELECT non_lus FROM v_chat_unread WHERE utilisateur_id = ?");
+    $stmt = $pdo->prepare('SELECT non_lus FROM v_chat_unread WHERE utilisateur_id = ?');
     $stmt->execute([$_SESSION['user_id']]);
     $unreadMessages = (int) $stmt->fetchColumn();
-} catch (Exception $e) { $unreadMessages = 0; }
+} catch (Exception $e) {
+    $unreadMessages = 0;
+}
 ?>
 <nav class="sidebar" id="appSidebar">
 
@@ -56,7 +58,7 @@ try {
                 <div class="text-white small fw-medium text-truncate" style="line-height:1.2;"><?= htmlspecialchars($_SESSION['username'] ?? '') ?></div>
                 <span class="badge <?= getRoleBadgeClass() ?>" style="font-size:.6rem;"><?= getRoleLabel() ?></span>
             </div>
-            <button class="theme-toggle" onclick="toggleTheme()" title="Mode sombre/clair"></button>
+            <button class="theme-toggle" onclick="toggleTheme()" title="Mode sombre/clair" type="button" style="flex-shrink:0;position:relative;z-index:1;"></button>
         </div>
     </div>
 
@@ -65,11 +67,15 @@ try {
         <!-- Principal -->
         <div class="px-3 py-2"><small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Principal</small></div>
         <ul class="nav flex-column px-2">
-            <li class="nav-item"><a class="nav-link <?= $currentFile==='index.php'?'active':'' ?>" href="<?= BASE_URL ?>/index.php"><i class="bi bi-grid-1x2-fill me-2"></i>Tableau de bord</a></li>
-            <li class="nav-item"><a class="nav-link <?= $currentFile==='search.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/search.php"><i class="bi bi-search me-2"></i>Recherche</a></li>
-            <li class="nav-item"><a class="nav-link <?= $currentFile==='profile.php'?'active':'' ?>" href="<?= BASE_URL ?>/pages/profile.php"><i class="bi bi-person-circle me-2"></i>Mon profil</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile === 'index.php'
+                ? 'active'
+                : '' ?>" href="<?= BASE_URL ?>/index.php"><i class="bi bi-grid-1x2-fill me-2"></i>Tableau de bord</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile === 'search.php' ? 'active' : '' ?>" href="<?= BASE_URL ?>/pages/search.php"><i class="bi bi-search me-2"></i>Recherche</a></li>
+            <li class="nav-item"><a class="nav-link <?= $currentFile === 'profile.php'
+                ? 'active'
+                : '' ?>" href="<?= BASE_URL ?>/pages/profile.php"><i class="bi bi-person-circle me-2"></i>Mon profil</a></li>
             <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='chat.php'?'active':'' ?> d-flex justify-content-between align-items-center" href="<?= BASE_URL ?>/pages/chat.php">
+                <a class="nav-link <?= $currentFile === 'chat.php' ? 'active' : '' ?> d-flex justify-content-between align-items-center" href="<?= BASE_URL ?>/pages/chat.php">
                     <span><i class="bi bi-chat-dots me-2"></i>Messages</span>
                     <?php if ($unreadMessages > 0): ?><span class="badge bg-danger rounded-pill"><?= $unreadMessages ?></span><?php endif; ?>
                 </a>
@@ -78,7 +84,7 @@ try {
             <?= navLink('alertes.php', 'bi-exclamation-triangle', 'Alertes', $currentFile) ?>
             <?php if ($notifCount > 0 || isAdmin()): ?>
             <li class="nav-item">
-                <a class="nav-link <?= $currentFile==='notifications.php'?'active':'' ?> d-flex justify-content-between align-items-center" href="<?= BASE_URL ?>/pages/notifications.php">
+                <a class="nav-link <?= $currentFile === 'notifications.php' ? 'active' : '' ?> d-flex justify-content-between align-items-center" href="<?= BASE_URL ?>/pages/notifications.php">
                     <span><i class="bi bi-bell me-2"></i>Notifications</span>
                     <?php if ($notifCount > 0): ?><span class="badge bg-danger"><?= $notifCount ?></span><?php endif; ?>
                 </a>
@@ -90,13 +96,23 @@ try {
         <div class="px-3 py-2 mt-1"><small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Gestion</small></div>
         <ul class="nav flex-column px-2">
             <?= navLink('students.php', 'bi-people', 'Élèves', $currentFile) ?>
-            <?php if (in_array($currentRole,['admin','directeur','secretaire'])): ?><?= navLink('instructors.php', 'bi-person-badge', 'Moniteurs', $currentFile) ?><?php endif; ?>
-            <?php if (in_array($currentRole,['admin','directeur'])): ?><?= navLink('vehicles.php', 'bi-car-front', 'Véhicules', $currentFile) ?><?php endif; ?>
-            <?php if (in_array($currentRole,['admin','directeur','secretaire','moniteur'])): ?><?= navLink('lessons.php', 'bi-calendar-check', 'Leçons', $currentFile) ?><?php endif; ?>
-            <?php if (in_array($currentRole,['admin','directeur','secretaire','caissier'])): ?><?= navLink('payments.php', 'bi-cash', 'Paiements', $currentFile) ?><?php endif; ?>
+            <?php if (in_array($currentRole, ['admin', 'directeur', 'secretaire'])):
+                navLink('instructors.php', 'bi-person-badge', 'Moniteurs', $currentFile)
+            endif; ?>
+            <?php if (in_array($currentRole, ['admin', 'directeur'])):
+                navLink('vehicles.php', 'bi-car-front', 'Véhicules', $currentFile)
+            endif; ?>
+            <?php if (in_array($currentRole, ['admin', 'directeur', 'secretaire', 'moniteur'])):
+                navLink('lessons.php', 'bi-calendar-check', 'Leçons', $currentFile)
+            endif; ?>
+            <?php if (in_array($currentRole, ['admin', 'directeur', 'secretaire', 'caissier'])):
+                navLink('payments.php', 'bi-cash', 'Paiements', $currentFile)
+            endif; ?>
             <?= navLink('enrollments.php', 'bi-journal-text', 'Inscriptions', $currentFile) ?>
             <?= navLink('exams.php', 'bi-clipboard-check', 'Examens', $currentFile) ?>
-            <?php if (hasPermission('gestion_documents')): ?><?= navLink('documents.php', 'bi-file-earmark-arrow-up', 'Documents', $currentFile) ?><?php endif; ?>
+            <?php if (hasPermission('gestion_documents')):
+                navLink('documents.php', 'bi-file-earmark-arrow-up', 'Documents', $currentFile)
+            endif; ?>
         </ul>
 
         <!-- Rapports -->
@@ -114,8 +130,15 @@ try {
         <div class="px-3 py-2 mt-1"><small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Administration</small></div>
         <ul class="nav flex-column px-2">
             <?= navLink('backup.php', 'bi-cloud-arrow-up', 'Backup', $currentFile) ?>
-            <?php if (hasPermission('gestion_comptes')): ?><?= navLink('corbeille.php', 'bi-trash3', 'Corbeille', $currentFile) ?><?php endif; ?>
-            <?php if (hasPermission('voir_parametres')): ?><?= navLink('settings.php', 'bi-gear', 'Paramètres', $currentFile) ?><?php endif; ?>
+            <?php if (hasPermission('gestion_comptes')):
+                navLink('corbeille.php', 'bi-trash3', 'Corbeille', $currentFile)
+            endif; ?>
+            <?php if (hasPermission('voir_parametres')):
+                navLink('settings.php', 'bi-gear', 'Paramètres', $currentFile)
+            endif; ?>
+            <?php if (hasPermission('voir_parametres')):
+                navLink('archives.php', 'bi-archive', 'Archives', $currentFile)
+            endif; ?>
         </ul>
         <?php endif; ?>
 

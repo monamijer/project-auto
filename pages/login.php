@@ -6,18 +6,27 @@ session_start();
 require_once __DIR__ . '/../config/database.php';
 require_once BASE_PATH . '/includes/auth.php';
 
-if (isset($_SESSION['user_id'])) { header('Location: ' . BASE_URL . '/index.php'); exit(); }
+if (isset($_SESSION['user_id'])) {
+    header('Location: ' . BASE_URL . '/index.php');
+    exit();
+}
 
-$error   = ''; $doLog = false; $logMessage = '';
+$error = '';
+$doLog = false;
+$logMessage = '';
 
-if (isset($_GET['expired'])) { $error = 'Session expirée. Veuillez vous reconnecter.'; }
-if (isset($_GET['reset']))   { $error = 'Mot de passe changé. Connectez-vous.'; }
+if (isset($_GET['expired'])) {
+    $error = 'Session expirée. Veuillez vous reconnecter.';
+}
+if (isset($_GET['reset'])) {
+    $error = 'Mot de passe changé. Connectez-vous.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $lockStmt = $pdo->prepare("SELECT tentatives_echouees, verrouille_jusqua FROM expirations_utilisateurs WHERE utilisateur = ?");
+    $lockStmt = $pdo->prepare('SELECT tentatives_echouees, verrouille_jusqua FROM expirations_utilisateurs WHERE utilisateur = ?');
     $lockStmt->execute([$username]);
     $lockRow = $lockStmt->fetch();
 
@@ -26,47 +35,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Compte verrouillé. Réessayez dans {$minutes} minute(s).";
     } else {
         try {
-            $pdo->prepare("CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)")->execute([$username]);
-            $row = $pdo->query("SELECT @p_id AS id, @p_role AS role, @p_hash AS hash, @p_statut AS statut")->fetch();
-        } catch (PDOException $e) { $error = 'Erreur système.'; $row = null; }
+            $pdo->prepare('CALL sp_connexion(?, @p_id, @p_role, @p_hash, @p_statut)')->execute([$username]);
+            $row = $pdo->query('SELECT @p_id AS id, @p_role AS role, @p_hash AS hash, @p_statut AS statut')->fetch();
+        } catch (PDOException $e) {
+            $error = 'Erreur système.';
+            $row = null;
+        }
 
         if ($row && $row['id']) {
             if ($row['statut'] !== 'actif') {
                 $error = 'Compte ' . htmlspecialchars($row['statut']) . '.';
-                $doLog = true; $logMessage = 'Compte ' . $row['statut'];
+                $doLog = true;
+                $logMessage = 'Compte ' . $row['statut'];
             } elseif (password_verify($password, $row['hash'])) {
-                callProcedure("CALL sp_reset_tentatives(?,@msg)", [$username]);
+                callProcedure('CALL sp_reset_tentatives(?,@msg)', [$username]);
 
                 // ── 2FA (#8) ─────────────────────────────────────────────
-                try { $r2fa = $pdo->query("SELECT valeur FROM config_systeme WHERE cle='2fa_active' LIMIT 1")->fetchColumn(); } catch (Exception $e) { $r2fa = '0'; }
+                try {
+                    $r2fa = $pdo->query("SELECT valeur FROM config_systeme WHERE cle='2fa_active' LIMIT 1")->fetchColumn();
+                } catch (Exception $e) {
+                    $r2fa = '0';
+                }
 
-                if ((int)$r2fa === 1) {
-                    $pdo->prepare("CALL sp_generer_otp(?,?,@otp_code,@otp_msg)")->execute([$username, '2fa']);
-                    $rotp = $pdo->query("SELECT @otp_code AS code, @otp_msg AS msg")->fetch();
+                if ((int) $r2fa === 1) {
+                    $pdo->prepare('CALL sp_generer_otp(?,?,@otp_code,@otp_msg)')->execute([$username, '2fa']);
+                    $rotp = $pdo->query('SELECT @otp_code AS code, @otp_msg AS msg')->fetch();
                     if (($rotp['msg'] ?? '') === 'OK') {
-                        $_SESSION['2fa_pending_id']   = $row['id'];
+                        $_SESSION['2fa_pending_id'] = $row['id'];
                         $_SESSION['2fa_pending_user'] = $username;
                         $_SESSION['2fa_pending_role'] = $row['role'];
-                        $_SESSION['2fa_expire']       = time() + 600;
+                        $_SESSION['2fa_expire'] = time() + 600;
                         $_SESSION['2fa_code_display'] = $rotp['code'];
                         header('Location: ' . BASE_URL . '/pages/verify_2fa.php');
                         exit();
                     }
                 }
 
-                $_SESSION['user_id'] = $row['id']; $_SESSION['username'] = $username;
-                $_SESSION['role'] = $row['role']; $_SESSION['last_activity'] = time();
+                $_SESSION['user_id'] = $row['id'];
+                $_SESSION['username'] = $username;
+                $_SESSION['role'] = $row['role'];
+                $_SESSION['last_activity'] = time();
                 callProcedure('CALL sp_journaliser(?,?,?,@msg)', [$username, 'AUTORISÉE', 'Connexion réussie']);
-                header('Location: ' . BASE_URL . '/index.php'); exit();
+                header('Location: ' . BASE_URL . '/index.php');
+                exit();
             } else {
-                callProcedure("CALL sp_incrementer_tentative(?,@msg)", [$username]);
-                $error = 'Mot de passe incorrect.'; $doLog = true; $logMessage = 'Mot de passe incorrect';
-                $lockStmt->execute([$username]); $upd = $lockStmt->fetch();
-                $restantes = max(0, 5 - (int)($upd['tentatives_echouees'] ?? 0));
-                if ($restantes > 0) $error .= " ($restantes tentative(s) restante(s))";
+                callProcedure('CALL sp_incrementer_tentative(?,@msg)', [$username]);
+                $error = 'Mot de passe incorrect.';
+                $doLog = true;
+                $logMessage = 'Mot de passe incorrect';
+                $lockStmt->execute([$username]);
+                $upd = $lockStmt->fetch();
+                $restantes = max(0, 5 - (int) ($upd['tentatives_echouees'] ?? 0));
+                if ($restantes > 0) {
+                    $error .= " ($restantes tentative(s) restante(s))";
+                }
             }
-        } else { $error = 'Identifiant introuvable.'; }
-        if ($doLog) callProcedure("CALL sp_journaliser(?,?,?,@msg)", [$username, 'REFUSÉE', $logMessage]);
+        } else {
+            $error = 'Identifiant introuvable.';
+        }
+        if ($doLog) {
+            callProcedure('CALL sp_journaliser(?,?,?,@msg)', [$username, 'REFUSÉE', $logMessage]);
+        }
     }
 }
 ?>
@@ -92,9 +121,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="card login-card"><div class="card-body">
     <div class="text-center mb-4"><i class="bi bi-car-front-fill text-primary display-4"></i><h4 class="mt-2 mb-0 fw-bold">Auto École Pro</h4><p class="text-muted small mt-1">Connectez-vous</p></div>
-    <?php if ($error): ?><div class="alert alert-danger d-flex align-items-start py-2 gap-2"><i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i><small><?= htmlspecialchars($error) ?></small></div><?php endif; ?>
+    <?php if ($error): ?><div class="alert alert-danger d-flex align-items-start py-2 gap-2"><i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i><small><?= htmlspecialchars(
+    $error
+) ?></small></div><?php endif; ?>
     <form method="POST" autocomplete="off">
-        <div class="mb-3"><label class="form-label small fw-medium">Identifiant</label><div class="input-group"><span class="input-group-text border-end-0"><i class="bi bi-person text-muted"></i></span><input type="text" name="username" class="form-control border-start-0" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" required autofocus></div></div>
+        <div class="mb-3"><label class="form-label small fw-medium">Identifiant</label><div class="input-group"><span class="input-group-text border-end-0"><i class="bi bi-person text-muted"></i></span><input type="text" name="username" class="form-control border-start-0" value="<?= htmlspecialchars(
+            $_POST['username'] ?? ''
+        ) ?>" required autofocus></div></div>
         <div class="mb-3"><label class="form-label small fw-medium">Mot de passe</label><div class="input-group"><span class="input-group-text border-end-0"><i class="bi bi-lock text-muted"></i></span><input type="password" name="password" id="pwdInput" class="form-control border-start-0 border-end-0" required><button class="btn btn-outline-secondary border-start-0" type="button" onclick="togglePwd()" tabindex="-1"><i class="bi bi-eye" id="eyeIcon"></i></button></div></div>
         <div class="d-flex justify-content-end mb-3"><a href="<?= BASE_URL ?>/pages/forgot_password.php" class="forgot-link"><i class="bi bi-question-circle me-1"></i>Mot de passe oublié ?</a></div>
         <button type="submit" class="btn btn-primary w-100"><i class="bi bi-box-arrow-in-right me-2"></i>Se connecter</button>

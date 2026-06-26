@@ -1,6 +1,5 @@
 /* === Base === */
 body {
-    /* background-color: #f5f6fa; */
     font-size: 0.9rem;
     margin: 0;
     padding: 0;
@@ -35,8 +34,13 @@ body {
     padding-bottom: 0.5rem;
 }
 
-.sidebar-body::-webkit-scrollbar { width: 4px; }
-.sidebar-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+.sidebar-body::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
 
 .sidebar-footer {
     flex-shrink: 0;
@@ -54,9 +58,20 @@ body {
     text-decoration: none;
 }
 
-.sidebar .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
-.sidebar .nav-link.active { color: #fff; background: #4f46e5; font-weight: 500; }
-.sidebar .nav-link i { font-size: 1.05rem; width: 20px; text-align: center; }
+.sidebar .nav-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+.sidebar .nav-link.active {
+    color: #fff;
+    background: #4f46e5;
+    font-weight: 500;
+}
+.sidebar .nav-link i {
+    font-size: 1.05rem;
+    width: 20px;
+    text-align: center;
+}
 
 /* === Main content === */
 .main-content {
@@ -69,11 +84,16 @@ body {
 .sidebar-backdrop {
     display: none;
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.45);
     z-index: 1025;
 }
-.sidebar-backdrop.show { display: block; }
+.sidebar-backdrop.show {
+    display: block;
+}
 
 /* === Mobile topbar === */
 .mobile-topbar {
@@ -88,78 +108,94 @@ body {
     z-index: 1020;
 }
 .mobile-topbar .btn-burger {
-    background: none; border: none; color: #fff;
-    font-size: 1.4rem; padding: 0; line-height: 1; cursor: pointer;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.4rem;
+    padding: 0;
+    line-height: 1;
+    cursor: pointer;
 }
 
 /* === Mobile === */
 @media (max-width: 767.98px) {
-    .mobile-topbar { display: flex; }
-    .sidebar { transform: translateX(-100%); width: 260px; }
-    .sidebar.show { transform: translateX(0); }
-    .main-content { margin-left: 0; padding: 1rem; }
+    .mobile-topbar {
+        display: flex;
+    }
+    .sidebar {
+        transform: translateX(-100%);
+        width: 260px;
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0;
+        padding: 1rem;
+    }
 }
 
 /* === Cards & tables === */
-.card { border-radius: 10px; }
-.table > :not(caption) > * > * { padding: 0.6rem 0.75rem; }
-.badge { font-weight: 500; }
-.pagination { margin-bottom: 0; }
+.card {
+    border-radius: 10px;
+}
+.table > :not(caption) > * > * {
+    padding: 0.6rem 0.75rem;
+}
+.badge {
+    font-weight: 500;
+}
+.pagination {
+    margin-bottom: 0;
+}
 
 /* === Page header === */
 .page-header {
-    display: flex; flex-wrap: wrap; gap: 0.5rem;
-    justify-content: space-between; align-items: center;
-    padding-bottom: 0.75rem; margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
     border-bottom: 1px solid #dee2e6;
 }
 
-/* ══════════════════════════════════════════════════════════════════
+/* ================================================================
    DARK MODE — Bootstrap natif data-bs-theme="dark"
-   Seulement les ajustements nécessaires que Bootstrap ne gère pas
-   ══════════════════════════════════════════════════════════════════ */
-
-/* Sidebar en mode sombre */
-[data-bs-theme="dark"] .sidebar {
+   ================================================================ */
+[data-bs-theme='dark'] .sidebar {
     background: #0f172a !important;
 }
-[data-bs-theme="dark"] .sidebar .nav-link.active {
+[data-bs-theme='dark'] .sidebar .nav-link.active {
     background: #6366f1;
 }
-
-/* Topbar mobile */
-[data-bs-theme="dark"] .mobile-topbar {
+[data-bs-theme='dark'] .mobile-topbar {
     background: #0f172a;
 }
-
-/* Page header border */
-[data-bs-theme="dark"] .page-header {
-    border-color: rgba(255,255,255,0.1);
+[data-bs-theme='dark'] .page-header {
+    border-color: rgba(255, 255, 255, 0.1);
 }
-
-/* Sidebar footer logout button */
-[data-bs-theme="dark"] .sidebar-footer .btn-outline-light {
-    color: rgba(255,255,255,0.7);
-    border-color: rgba(255,255,255,0.2);
+[data-bs-theme='dark'] .sidebar-footer .btn-outline-light {
+    color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
 }
-[data-bs-theme="dark"] .sidebar-footer .btn-outline-light:hover {
-    background: rgba(255,255,255,0.1);
+[data-bs-theme='dark'] .sidebar-footer .btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1);
     color: #fff;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   TOGGLE BUTTON — Dark mode switch
-   ══════════════════════════════════════════════════════════════════ */
-
-/* Toggle dans la sidebar */
+/* ================================================================
+   TOGGLE BUTTONS
+   ================================================================ */
 .theme-toggle {
     cursor: pointer;
     width: 38px;
     height: 22px;
-    background: rgba(255,255,255,.25);
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 11px;
     position: relative;
-    transition: background .2s;
+    transition: background 0.2s;
     border: none;
     outline: none;
     flex-shrink: 0;
@@ -173,21 +209,20 @@ body {
     height: 18px;
     border-radius: 50%;
     background: #fff;
-    transition: transform .2s;
+    transition: transform 0.2s;
 }
-[data-bs-theme="dark"] .theme-toggle {
+[data-bs-theme='dark'] .theme-toggle {
     background: #6366f1;
 }
-[data-bs-theme="dark"] .theme-toggle::after {
+[data-bs-theme='dark'] .theme-toggle::after {
     transform: translateX(16px);
 }
 
-/* Toggle dans la mobile topbar */
 .mobile-topbar .theme-toggle-mobile {
     cursor: pointer;
     width: 38px;
     height: 22px;
-    background: rgba(255,255,255,.25);
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 11px;
     position: relative;
     border: none;
@@ -203,12 +238,19 @@ body {
     height: 18px;
     border-radius: 50%;
     background: #fff;
-    transition: transform .2s;
+    transition: transform 0.2s;
     display: block;
 }
-[data-bs-theme="dark"] .mobile-topbar .theme-toggle-mobile {
+[data-bs-theme='dark'] .mobile-topbar .theme-toggle-mobile {
     background: #6366f1;
 }
-[data-bs-theme="dark"] .mobile-topbar .theme-toggle-mobile span {
+[data-bs-theme='dark'] .mobile-topbar .theme-toggle-mobile span {
     transform: translateX(16px);
+}
+/* S'assurer que le toggle est cliquable */
+.sidebar-header .theme-toggle {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 10;
+    position: relative;
 }
