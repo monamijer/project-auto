@@ -1,19 +1,17 @@
 <?php
 /**
- * includes/header.php — En-tête HTML commun avec sécurité
+ * includes/header.php — En-tête HTML commun avec sécurité + Dark mode
  */
 require_once BASE_PATH . '/includes/auth.php';
 
-if (empty($pageTitle)) {
-    $pageTitle = 'Auto École Pro';
-}
+if (empty($pageTitle)) { $pageTitle = 'Auto École Pro'; }
 
 // Security headers
 header('X-Frame-Options: SAMEORIGIN');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('X-XSS-Protection: 1; mode=block');
-if (ENVIRONMENT === 'production') {
+if (defined('ENVIRONMENT') && ENVIRONMENT === 'production') {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 }
 
@@ -27,13 +25,20 @@ if (isAdmin()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4f46e5">
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/node_modules/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/node_modules/bootstrap-icons/font/bootstrap-icons.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
     <link rel="shortcut icon" href="<?= BASE_URL ?>/assets/images/favicon.ico" type="image/x-icon">
     <link rel="manifest" href="<?= BASE_URL ?>/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <script>
+        /* Init thème avant le rendu pour éviter le flash (FOUC) */
+        (function(){
+            var t = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
 </head>
 <body>
 
@@ -41,7 +46,10 @@ if (isAdmin()) {
     <button class="btn-burger" onclick="document.getElementById('appSidebar').classList.add('show');document.getElementById('sidebarBackdrop').classList.add('show');">
         <i class="bi bi-list"></i>
     </button>
-    <strong><i class="bi bi-car-front-fill me-1"></i>Auto École Pro</strong>
+    <div class="d-flex align-items-center gap-2">
+        <button class="theme-toggle" onclick="toggleTheme()" title="Mode sombre/clair"></button>
+        <strong><i class="bi bi-car-front-fill me-1"></i>Auto École Pro</strong>
+    </div>
     <?php if (isAdmin()): ?>
     <a href="<?= BASE_URL ?>/pages/notifications.php" class="text-white position-relative">
         <i class="bi bi-bell fs-5"></i>
