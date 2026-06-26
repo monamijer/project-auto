@@ -3,7 +3,14 @@
  * includes/sidebar.php — Navigation principale avec dark mode toggle
  */
 $currentFile = basename($_SERVER['PHP_SELF']);
-$notifCount = isAdmin() ? (int) $pdo->query("SELECT COUNT(*) FROM notifications WHERE destinataire='all' AND lu=0")->fetchColumn() : 0;
+$notifCount = 0;
+try {
+    if (isAdmin()) {
+        $notifCount = (int) $pdo->query("SELECT COUNT(*) FROM notifications WHERE destinataire='all' AND lu=0")->fetchColumn();
+    }
+} catch (Exception $e) {
+    $notifCount = 0;
+}
 $currentRole = $_SESSION['role'] ?? 'stagiaire';
 
 function navLink(string $file, string $icon, string $label, string $current): string
@@ -64,7 +71,6 @@ try {
 
     <div class="sidebar-body">
 
-        <!-- Principal -->
         <div class="px-3 py-2"><small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Principal</small></div>
         <ul class="nav flex-column px-2">
             <li class="nav-item"><a class="nav-link <?= $currentFile === 'index.php'
@@ -92,7 +98,6 @@ try {
             <?php endif; ?>
         </ul>
 
-        <!-- Gestion -->
         <div class="px-3 py-2 mt-1"><small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Gestion</small></div>
         <ul class="nav flex-column px-2">
             <?= navLink('students.php', 'bi-people', 'Élèves', $currentFile) ?>
@@ -115,7 +120,6 @@ try {
             endif; ?>
         </ul>
 
-        <!-- Rapports -->
         <?php if (hasPermission('export_donnees')): ?>
         <div class="px-3 py-2 mt-1"><small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Rapports</small></div>
         <ul class="nav flex-column px-2">
@@ -125,7 +129,6 @@ try {
         </ul>
         <?php endif; ?>
 
-        <!-- Administration -->
         <?php if (hasPermission('gestion_comptes') || hasPermission('voir_parametres')): ?>
         <div class="px-3 py-2 mt-1"><small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Administration</small></div>
         <ul class="nav flex-column px-2">
@@ -142,7 +145,6 @@ try {
         </ul>
         <?php endif; ?>
 
-        <!-- Aide -->
         <div class="px-3 py-2 mt-1"><small class="text-white-50 text-uppercase fw-bold" style="font-size:.63rem;letter-spacing:1.5px;">Aide</small></div>
         <ul class="nav flex-column px-2">
             <?= navLink('presentation.php', 'bi-info-circle', 'À propos', $currentFile) ?>

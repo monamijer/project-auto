@@ -10,13 +10,13 @@ define('SESSION_TIMEOUT', 20 * 60);
 function requireLogin(): void
 {
     if (!isset($_SESSION['user_id'])) {
-        header('Location: ' . BASE_URL . '/pages/login.php');
+        header('Location: /project_auto/pages/login.php');
         exit();
     }
     if (isset($_SESSION['last_activity']) && time() - $_SESSION['last_activity'] > SESSION_TIMEOUT) {
         session_unset();
         session_destroy();
-        header('Location: ' . BASE_URL . '/pages/login.php?expired=1');
+        header('Location: /project_auto/pages/login.php?expired=1');
         exit();
     }
     $_SESSION['last_activity'] = time();
