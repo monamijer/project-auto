@@ -1,19 +1,14 @@
 <?php
 /**
- * includes/header.php — En-tête HTML commun avec sécurité + Dark mode
+ * includes/header.php — En-tête HTML commun
  */
 require_once BASE_PATH . '/includes/auth.php';
 
 if (empty($pageTitle)) { $pageTitle = 'Auto École Pro'; }
 
-// Security headers
 header('X-Frame-Options: SAMEORIGIN');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
-header('X-XSS-Protection: 1; mode=block');
-if (defined('ENVIRONMENT') && ENVIRONMENT === 'production') {
-    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
-}
 
 $notifCount = 0;
 if (isAdmin()) {
@@ -32,13 +27,6 @@ if (isAdmin()) {
     <link rel="shortcut icon" href="<?= BASE_URL ?>/assets/images/favicon.ico" type="image/x-icon">
     <link rel="manifest" href="<?= BASE_URL ?>/manifest.json">
     <meta name="theme-color" content="#4f46e5">
-    <script>
-        /* Init thème avant le rendu pour éviter le flash (FOUC) */
-        (function(){
-            var t = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', t);
-        })();
-    </script>
 </head>
 <body>
 
@@ -47,7 +35,9 @@ if (isAdmin()) {
         <i class="bi bi-list"></i>
     </button>
     <div class="d-flex align-items-center gap-2">
-        <button class="theme-toggle" onclick="toggleTheme()" title="Mode sombre/clair"></button>
+        <button class="theme-toggle-mobile" onclick="toggleTheme()" title="Mode sombre/clair">
+            <span></span>
+        </button>
         <strong><i class="bi bi-car-front-fill me-1"></i>Auto École Pro</strong>
     </div>
     <?php if (isAdmin()): ?>

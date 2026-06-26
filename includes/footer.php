@@ -20,11 +20,17 @@ $(document).ready(function () {
 <?php endif; ?>
 
 <script>
-/* ── Dark mode : persistance via localStorage ── */
+/* ── Dark mode persistant ── */
+(function(){
+    var saved = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-bs-theme', saved);
+})();
+
 function toggleTheme() {
-    var current = document.documentElement.getAttribute('data-theme') || 'light';
+    var html = document.documentElement;
+    var current = html.getAttribute('data-bs-theme') || 'light';
     var next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
+    html.setAttribute('data-bs-theme', next);
     localStorage.setItem('theme', next);
 }
 </script>
