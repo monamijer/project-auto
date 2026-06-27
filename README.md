@@ -183,7 +183,7 @@ A complete management system for driving schools. Built with PHP, MySQL, Bootstr
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/yourusername/project_auto.git
-cd auto-ecole-pro
+cd project-auto/
 ```
 
 ### 2. Install dependencies
